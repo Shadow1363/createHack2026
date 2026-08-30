@@ -1,16 +1,13 @@
 /* =========================================================================
-   YVERSION AUTH: OAuth 2.0 PKCE + DATA EXCHANGE APPROVAL FLOW
-   Documentação dos três endpoints de Data Exchange (conforme solicitado):
-     - GET  https://developers.youversion.com/api/data-exchange#show-the-data-exchange-approval-page
-     - POST https://developers.youversion.com/api/data-exchange#complete-the-data-exchange-approval-flow
-     - POST https://developers.youversion.com/api/data-exchange#create-a-data-exchange-token
-   Montamos também os endpoints OAuth usados para adquirir o Bearer token inicial
-   (/auth/authorize + /auth/token) com PKCE S256 (code_challenge_method=S256).
-   Ordem:
-     1. Autorização OAuth (PKCE) → ?code → token bearer.
-     2. POST /data-exchange/token → token curto (para permissões).
-     3. GET  /data-exchange?token=… → tela de aprovação (browser).
-     4. POST /data-exchange → 303 redirect de volta com data_exchange_status=granted.
+   YVERSION AUTH: OAuth 2.0 PKCE (callback em dois passos) + Data Exchange
+   Fluxo atual da YouVersion:
+     1. /auth/authorize → redirect de volta apenas com ?state=...
+     2. Cliente reenvia esse state para /auth/callback
+     3. /auth/callback redireciona de volta com ?code=...
+     4. Cliente troca o code em /auth/token
+   Permissões `highlights` também podem ser pedidas já no /auth/authorize via
+   `requested_permissions[]`, então o login não deve tratar o 1o retorno
+   state-only como erro.
    ========================================================================= */
 const AUTH_STORAGE_KEY = "genesis_reader_yv_auth_v1";
 const AUTH_PKCE_KEY = "genesis_reader_yv_pkce_v1";
@@ -67,6 +64,20 @@ function loadAuthSession() {
     return null;
   }
 }
+function loadDexSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_DEX_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+function clearDexSession() {
+  try {
+    localStorage.removeItem(AUTH_DEX_KEY);
+  } catch (_) {}
+}
 function clearAuthSession() {
   try {
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -81,10 +92,9 @@ function clearAuthSession() {
 
 const YouVersionAuth = {
   async beginLogin(opts) {
+    clearDexSession();
     const responseMode =
-      opts && typeof opts.responseMode === "string"
-        ? opts.responseMode
-        : "query";
+      opts && typeof opts.responseMode === "string" ? opts.responseMode : "";
     const redirectUriMode =
       opts && typeof opts.redirectUriMode === "string"
         ? opts.redirectUriMode
@@ -123,13 +133,26 @@ const YouVersionAuth = {
       code_challenge,
       code_challenge_method: "S256",
     });
+    params.append("requested_permissions[]", "highlights");
     if (responseMode) params.set("response_mode", responseMode);
     window.location.assign(
       `${CONFIG.YOUVERSION_API_BASE}/auth/authorize?${params.toString()}`,
     );
   },
 
-  async exchangeCodeForToken(code, state) {
+  continueLoginWithState(state) {
+    const raw = localStorage.getItem(AUTH_PKCE_KEY);
+    if (!raw) throw new Error("Sessão OAuth expirada. Tente entrar novamente.");
+    const pkce = JSON.parse(raw);
+    if (!state || pkce.state !== state)
+      throw new Error("State CSRF mismatch — estado OAuth inválido.");
+    const params = new URLSearchParams({ state });
+    window.location.assign(
+      `${CONFIG.YOUVERSION_API_BASE}/auth/callback?${params.toString()}`,
+    );
+  },
+
+  async exchangeCodeForToken(code, state, grantedPermissions) {
     const raw = localStorage.getItem(AUTH_PKCE_KEY);
     if (!raw) throw new Error("Sessão OAuth expirada. Tente entrar novamente.");
     const pkce = JSON.parse(raw);
@@ -170,6 +193,7 @@ const YouVersionAuth = {
       refresh_token: tok.refresh_token || null,
       expires_in: tok.expires_in || null,
       scope: tok.scope || null,
+      granted_permissions: grantedPermissions || null,
       issuedAt: Date.now(),
     });
     CONFIG.YOUVERSION_BEARER_TOKEN = tok.access_token || "";
@@ -182,21 +206,24 @@ const YouVersionAuth = {
   async beginDataExchangeApproval() {
     if (!CONFIG.YOUVERSION_BEARER_TOKEN)
       throw new Error("Faça login antes de aprovar dados");
-    const res = await fetch(
-      `${CONFIG.YOUVERSION_API_BASE}/data-exchange/token`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CONFIG.YOUVERSION_BEARER_TOKEN}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "x-yvp-app-key": CONFIG.YOUVERSION_API_KEY,
-        },
-        body: JSON.stringify({
-          requested_permissions: ["highlights"],
-        }),
+    // Docs: POST /data-exchange/token lista x-yvp-app-key/x-yvp-app-id como
+    // QUERY PARAMETERS deste endpoint — apenas "Authorization" é um header
+    // documentado. Enviar a app key como header (como antes) não é o que
+    // a API espera e é a causa mais provável do fluxo não funcionar.
+    const tokenUrl = `${CONFIG.YOUVERSION_API_BASE}/data-exchange/token?${new URLSearchParams(
+      { "x-yvp-app-key": CONFIG.YOUVERSION_API_KEY },
+    ).toString()}`;
+    const res = await fetch(tokenUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CONFIG.YOUVERSION_BEARER_TOKEN}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-    );
+      body: JSON.stringify({
+        requested_permissions: ["highlights"],
+      }),
+    });
     if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(
@@ -204,7 +231,12 @@ const YouVersionAuth = {
       );
     }
     const tok = await res.json();
-    const dex = { token: tok.token, redirect_uri: currentRedirectUri() };
+    const dex = {
+      token: tok.token,
+      redirect_uri: currentRedirectUri(),
+      requested_permissions: ["highlights"],
+      started_at: Date.now(),
+    };
     try {
       localStorage.setItem(AUTH_DEX_KEY, JSON.stringify(dex));
     } catch (_) {}
@@ -2106,22 +2138,29 @@ async function handleRedirect() {
   const qsError = getP("error");
   const qsErrorDesc = getP("error_description");
   const dexStatus = getP("data_exchange_status");
-  const dexPerms = getP("granted_permissions");
-  const dexDenied = getP("denied_permissions");
+  const grantedPermissions = getP("granted_permissions");
+  const deniedPermissions = getP("denied_permissions");
   const qsAccessToken = getP("access_token");
   const qsIdToken = getP("id_token");
   const qsTokenType = getP("token_type");
   const qsExpiresIn = getP("expires_in");
   const qsScope = getP("scope");
+  const pendingDex = loadDexSession();
+
+  const hasDexMarkers =
+    !!pendingDex &&
+    (!!dexStatus ||
+      !!grantedPermissions ||
+      !!deniedPermissions ||
+      (!!pendingDex && !!qsError));
+  const hasOauthMarkers = !!qsCode || !!qsAccessToken || !!qsIdToken;
 
   const anyRedirectParam =
-    qsCode ||
+    hasOauthMarkers ||
     qsError ||
-    dexStatus ||
+    hasDexMarkers ||
     qParams.get("error_code") ||
-    qsState ||
-    qsAccessToken ||
-    qsIdToken;
+    qsState;
 
   if (!anyRedirectParam) {
     // Não há callback — decide: login screen ou leitor direto.
@@ -2146,7 +2185,83 @@ async function handleRedirect() {
     } catch (_) {}
   }
 
-  // (1) OAuth callback com ?code (ou #code=... no fragment).
+  function finishDataExchange(message) {
+    wireLoginButtons();
+    hydrateBearerFromStorage();
+    finishAndClearSearch();
+    initReaderAndHooks();
+    if (message) showToast(message);
+    clearDexSession();
+  }
+
+  // Data Exchange callback deve ser interpretado antes de qualquer fallback
+  // de OAuth. A doc oficial retorna `data_exchange_status` e permissões,
+  // não um novo `code` OAuth.
+  const effectiveDexStatus = dexStatus
+    ? dexStatus
+    : grantedPermissions
+      ? "granted"
+      : deniedPermissions || qsError === "access_denied"
+        ? "cancelled"
+        : pendingDex && qsError
+          ? "error"
+          : "";
+
+  if (effectiveDexStatus === "granted") {
+    const permCount = grantedPermissions
+      ? grantedPermissions.split(",").filter(Boolean).length
+      : 0;
+    finishDataExchange(
+      `Pronto! ${permCount} permissão(ões) YouVersion concedida(s). Destaques sincronizados ativos.`,
+    );
+    return;
+  }
+
+  if (effectiveDexStatus === "cancelled") {
+    finishDataExchange(
+      "Permissões YouVersion canceladas. Login permanece ativo; destaques serão locais.",
+    );
+    return;
+  }
+
+  if (effectiveDexStatus === "error") {
+    finishDataExchange(
+      `Aprovação YouVersion com erro (${qsError || "desconhecido"}). Destaques locais ativos.`,
+    );
+    return;
+  }
+
+  // Se existe um fluxo de Data Exchange pendente e a volta não trouxe os
+  // campos esperados, não devemos cair no diagnóstico de OAuth.
+  if (pendingDex && !hasOauthMarkers) {
+    finishDataExchange(
+      "A aprovação YouVersion retornou sem status reconhecido. Login mantido; destaques locais continuam ativos.",
+    );
+    return;
+  }
+
+  // (1) Primeiro redirect do OAuth moderno: apenas ?state=...
+  if (qsState && !qsCode && !qsAccessToken && !qsIdToken && !qsError) {
+    wireLoginButtons();
+    try {
+      setLoading(
+        "Finalizando login YouVersion",
+        "Confirmando retorno da YouVersion…",
+      );
+      YouVersionAuth.continueLoginWithState(qsState);
+      return;
+    } catch (e) {
+      finishAndClearSearch();
+      showError(
+        "Erro ao confirmar login YouVersion",
+        `${e && e.message ? e.message : String(e)}<br><small>A YouVersion agora retorna primeiro apenas o <code>state</code>; a app precisa reenviá-lo para <code>/auth/callback</code>.</small>`,
+        () => YouVersionAuth.beginLogin(),
+      );
+      return;
+    }
+  }
+
+  // (2) Segundo callback OAuth com ?code (ou #code=... no fragment).
   if (qsCode) {
     wireLoginButtons();
     setLoading(
@@ -2154,24 +2269,21 @@ async function handleRedirect() {
       "Trocando código de autorização por token de acesso…",
     );
     try {
-      await YouVersionAuth.exchangeCodeForToken(qsCode, qsState);
-      finishAndClearSearch();
-      setLoading(
-        "Pedindo permissão de destaques",
-        "Abrindo tela de aprovação de dados da YouVersion…",
+      await YouVersionAuth.exchangeCodeForToken(
+        qsCode,
+        qsState,
+        grantedPermissions,
       );
-      try {
-        await YouVersionAuth.beginDataExchangeApproval();
-      } catch (e) {
-        finishAndClearSearch();
-        initReaderAndHooks();
-        showToast(
-          "Login realizado; permissões YouVersion não concedidas (" +
-            (e && e.message ? e.message : "erro") +
-            "). Destaques locais ativos.",
-        );
-        return;
-      }
+      finishAndClearSearch();
+      initReaderAndHooks();
+      const permCount = grantedPermissions
+        ? grantedPermissions.split(",").filter(Boolean).length
+        : 0;
+      showToast(
+        permCount
+          ? `Login realizado. ${permCount} permissão(ões) concedida(s) pela YouVersion.`
+          : "Login realizado com sucesso.",
+      );
       return;
     } catch (e) {
       finishAndClearSearch();
@@ -2212,6 +2324,7 @@ async function handleRedirect() {
         refresh_token: null,
         expires_in: exp,
         scope: qsScope || null,
+        granted_permissions: grantedPermissions || null,
         issuedAt: Date.now(),
       });
       CONFIG.YOUVERSION_BEARER_TOKEN = qsAccessToken;
@@ -2219,22 +2332,8 @@ async function handleRedirect() {
         localStorage.removeItem(AUTH_PKCE_KEY);
       } catch (_) {}
       finishAndClearSearch();
-      setLoading(
-        "Pedindo permissão de destaques",
-        "Abrindo tela de aprovação de dados da YouVersion…",
-      );
-      try {
-        await YouVersionAuth.beginDataExchangeApproval();
-      } catch (e) {
-        finishAndClearSearch();
-        initReaderAndHooks();
-        showToast(
-          "Login realizado; permissões YouVersion não concedidas (" +
-            (e && e.message ? e.message : "erro") +
-            "). Destaques locais ativos.",
-        );
-        return;
-      }
+      initReaderAndHooks();
+      showToast("Login realizado com sucesso.");
       return;
     } catch (e) {
       finishAndClearSearch();
@@ -2248,50 +2347,6 @@ async function handleRedirect() {
     }
   }
 
-  // (2) Data Exchange callback: granted / cancelled / error
-  if (dexStatus === "granted") {
-    wireLoginButtons();
-    hydrateBearerFromStorage();
-    finishAndClearSearch();
-    initReaderAndHooks();
-    const permCount = dexPerms ? dexPerms.split(",").filter(Boolean).length : 0;
-    showToast(
-      `Pronto! ${permCount} permissão(ões) YouVersion concedida(s). Destaques sincronizados ativos.`,
-    );
-    try {
-      localStorage.removeItem(AUTH_DEX_KEY);
-    } catch (_) {}
-    return;
-  }
-
-  if (dexStatus === "cancelled") {
-    wireLoginButtons();
-    hydrateBearerFromStorage();
-    finishAndClearSearch();
-    initReaderAndHooks();
-    showToast(
-      "Permissões YouVersion canceladas. Login permanece ativo; destaques serão locais.",
-    );
-    try {
-      localStorage.removeItem(AUTH_DEX_KEY);
-    } catch (_) {}
-    return;
-  }
-
-  if (dexStatus === "error") {
-    wireLoginButtons();
-    hydrateBearerFromStorage();
-    finishAndClearSearch();
-    initReaderAndHooks();
-    showToast(
-      `Aprovação YouVersion com erro (${qsError || "desconhecido"}). Destaques locais ativos.`,
-    );
-    try {
-      localStorage.removeItem(AUTH_DEX_KEY);
-    } catch (_) {}
-    return;
-  }
-
   // (3) OAuth /callback ?error=access_denied etc.
   if (qsError) {
     wireLoginButtons();
@@ -2301,79 +2356,6 @@ async function handleRedirect() {
       isDenied ? "Aprovação cancelada" : "Erro no login YouVersion",
       `${qsErrorDesc ? `${qsErrorDesc} · ` : ""}${qsError}<br><small>Você pode aprovar novamente ou continuar sem conta YouVersion (destaques salvos apenas neste dispositivo).</small>`,
       () => YouVersionAuth.beginLogin(),
-    );
-    return;
-  }
-
-  // (4) Callback com apenas ?state=xxx e NENHUM outro campo reconhecido.
-  // Causa mais comum: redirect_uri não bate EXATAMENTE com a cadastrada no
-  // portal YV (ex: /index.html vs / vs com trailing slash vs port/proto).
-  if (qsState && !qsCode && !qsAccessToken && !dexStatus && !qsError) {
-    wireLoginButtons();
-    const pkceRaw = localStorage.getItem(AUTH_PKCE_KEY);
-    let stateMatch = false;
-    let pkce = null;
-    if (pkceRaw) {
-      try {
-        pkce = JSON.parse(pkceRaw);
-        stateMatch = pkce.state === qsState;
-      } catch (_) {}
-    }
-    const fullRedirect = currentRedirectUri();
-    const noIndexRedirect = (() => {
-      const u = new URL(fullRedirect);
-      if (/\/index\.html?$/i.test(u.pathname))
-        u.pathname = u.pathname.replace(/\/index\.html?$/i, "/");
-      return u.toString();
-    })();
-    const originRedirect = new URL(fullRedirect).origin + "/";
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      fullURLBeforeClear: window.location.href,
-      queryStringEntries: Array.from(qParams.entries()),
-      hashEntries: Array.from(hParams.entries()),
-      receivedState: qsState,
-      pkceFound: !!pkce,
-      pkceStateMatches: stateMatch,
-      pkceSentRedirectUri: pkce ? pkce.redirect_uri : null,
-      pkceOpts: pkce && pkce.opts ? pkce.opts : null,
-      currentRedirectCandidates: {
-        full: fullRedirect,
-        noindex: noIndexRedirect,
-        origin: originRedirect,
-      },
-      redirectUriChecklist:
-        "As 3 URIs abaixo devem estar EXATAMENTE cadastradas no painel YouVersion (developers.youversion.com) — http vs https, porta, path e trailing-slash importam.",
-      hint: "Causas mais prováveis (por ordem): (a) redirect_uri não cadastrada no portal YV; (b) response_mode=query não suportado pelo app YV; (c) scope openid não habilitado para o app.",
-    };
-    finishAndClearSearch();
-    showError(
-      "Login YouVersion incompleto",
-      `A YouVersion retornou apenas o <code>state</code> sem <code>code</code> de autorização${
-        stateMatch
-          ? " (estado reconhecido localmente — fluxo interrompido)."
-          : " (estado não reconhecido localmente — sessão PKCE expirada ou cross-site)."
-      }<br><br><b>Causas mais comuns:</b><ol style="margin:6px 0 0 18px;padding:0;line-height:1.65;"><li><b>redirect_uri</b> não está cadastrado <i>exatamente igual</i> no painel YouVersion (inclui proto, porta, trailing-slash e <code>/index.html</code> vs <code>/</code>).</li><li>App no portal não tem o grant <code>authorization_code</code> habilitado.</li><li><code>response_mode=query</code> recusado silenciosamente.</li></ol><br><small>Clique em "Debug" abaixo para ver detalhes técnicos e candidatos de redirect_uri.</small>`,
-      () => YouVersionAuth.beginLogin(),
-      {
-        debugInfo,
-        extraActions: [
-          {
-            label: "Tentar SEM response_mode (padrão YV)",
-            onClick: () => YouVersionAuth.beginLogin({ responseMode: "" }),
-          },
-          {
-            label: "Tentar SEM /index.html no redirect_uri",
-            onClick: () =>
-              YouVersionAuth.beginLogin({ redirectUriMode: "noindex" }),
-          },
-          {
-            label: "Tentar apenas origin + / (raiz)",
-            onClick: () =>
-              YouVersionAuth.beginLogin({ redirectUriMode: "origin" }),
-          },
-        ],
-      },
     );
     return;
   }
