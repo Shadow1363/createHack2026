@@ -177,6 +177,28 @@ body {
   max-width: 640px;
   text-align: center;
   color: var(--parchment);
+  transition:
+    opacity 0.18s ease,
+    filter 0.18s ease,
+    transform 0.18s ease;
+}
+.verse-text.is-rewording {
+  opacity: 0.4;
+  filter: blur(3px);
+  transform: translateY(2px);
+}
+.verse-text.is-typing {
+  opacity: 1;
+}
+.verse-text.is-typing::after {
+  content: "";
+  display: inline-block;
+  width: 0.08em;
+  height: 0.95em;
+  margin-left: 0.08em;
+  vertical-align: -0.08em;
+  background: color-mix(in srgb, var(--gold) 78%, transparent);
+  animation: aiCaret 0.8s step-end infinite;
 }
 
 .swipeable {
@@ -187,10 +209,49 @@ body {
   flex-direction: column;
   align-items: center;
   will-change: transform, opacity;
-  cursor: grab;
+  gap: 10px;
 }
-.verse-inner:active {
-  cursor: grabbing;
+
+.ai-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--parchment-dim) 72%, var(--gold) 28%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  margin-top: 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease;
+}
+.ai-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.ai-btn:hover {
+  color: var(--gold);
+  background: rgba(201, 161, 90, 0.08);
+}
+.ai-btn:active {
+  transform: scale(0.96);
+}
+.ai-btn.is-active {
+  color: var(--gold);
+}
+.ai-btn.is-loading {
+  opacity: 0.72;
+  pointer-events: none;
+}
+.ai-btn.is-loading svg {
+  animation: aiBtnPulse 0.9s ease-in-out infinite;
 }
 
 .save-badge {
@@ -252,6 +313,47 @@ body {
   }
   50% {
     transform: translateX(6px);
+  }
+}
+
+@keyframes aiBtnPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes aiCaret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verse-text,
+  .ai-btn,
+  .swipe-hint {
+    transition: none;
+  }
+  .verse-text.is-rewording {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+  .verse-text.is-typing::after,
+  .ai-btn.is-loading svg,
+  .swipe-hint .harrow {
+    animation: none;
   }
 }
 
@@ -612,8 +714,13 @@ textarea::placeholder {
 }
 
 .fact-section {
-  background: var(--ink-2);
+  background: #192b64;
 }
+
+.quiz-section {
+  background: #9f312e;
+}
+
 .fact-stat {
   font-family: "Fraunces", serif;
   font-weight: 600;
