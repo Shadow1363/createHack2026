@@ -188,13 +188,15 @@ body {
   max-width: 640px;
   text-align: center;
   color: var(--parchment);
-  touch-action: manipulation;
+  touch-action: manipulation !important;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .swipeable {
-  touch-action: manipulation;
+  touch-action: manipulation !important;
 }
 .verse-inner {
   display: flex;
@@ -202,6 +204,8 @@ body {
   align-items: center;
   will-change: transform, opacity;
   gap: 10px;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .ai-btn {
@@ -434,8 +438,8 @@ body {
 
 .save-badge {
   position: absolute;
-  top: 20px;
-  right: 26px;
+  top: 66px;
+  right: 30px;
   width: 16px;
   height: 20px;
   background: var(--gold);
@@ -447,6 +451,7 @@ body {
     transform 0.25s ease;
   pointer-events: none;
 }
+
 .save-badge.saved {
   opacity: 1;
   transform: scale(1);
@@ -612,20 +617,18 @@ body {
 
 .focus-btn {
   position: fixed;
-  bottom: 22px;
-  left: 24px;
+  top: 16px;
+  right: 16px;
   z-index: 45;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
   background: var(--ink-2);
   border: 1px solid var(--rule);
   color: var(--parchment-dim);
-  font-family: "Inter", sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 11px 18px 11px 14px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
   border-radius: 999px;
   cursor: pointer;
   transition:
@@ -643,24 +646,18 @@ body {
   background: var(--gold-soft);
 }
 .focus-icon {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.4px solid currentColor;
-  position: relative;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-.focus-icon::after {
-  content: "";
-  position: absolute;
-  inset: 2.5px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.focus-icon svg {
+  width: 20px;
+  height: 20px;
 }
-.focus-btn.active .focus-icon::after {
-  opacity: 1;
+.focus-btn.active .focus-icon svg {
   animation: breathe 2.6s ease-in-out infinite;
 }
 @keyframes breathe {

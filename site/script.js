@@ -645,7 +645,7 @@ const HighlightsSource = {
 async function hydrateSavedSetFromMirrorOnly() {
   const inMirror = HighlightsSource.getSavedSetFromMirror();
   inMirror.forEach((p) => savedSet.add(p));
-  updateSavedCounter();
+  // updateSavedCounter();
 }
 
 function repaintAllSaveBadges(rootEl) {
@@ -682,7 +682,7 @@ async function syncChapterHighlightsWithApi(yvContentId, verseNumbers, rootEl) {
     }
   });
   await Promise.all(fetches).catch(() => {});
-  if (changed) updateSavedCounter();
+  // if (changed) updateSavedCounter();
   repaintAllSaveBadges(rootEl || scroller);
 }
 
@@ -994,7 +994,7 @@ let hintTaught = false;
 
 const savedCounter = document.createElement("div");
 savedCounter.className = "saved-counter";
-savedCounter.innerHTML = `<span class="cbookmark"></span><span id="savedCount">0</span> salvos`;
+savedCounter.innerHTML = `<span class="cbookmark" styles="display: block;"></span>`;
 savedCounter.setAttribute("role", "button");
 savedCounter.setAttribute("tabindex", "0");
 savedCounter.setAttribute("aria-label", "Abrir versículos salvos");
@@ -1469,7 +1469,7 @@ function triggerSave(key, text, badge, inner) {
       }
     });
   }
-  updateSavedCounter();
+  // updateSavedCounter();
   inner.style.transition =
     "transform 0.28s cubic-bezier(.25,.8,.3,1.25), opacity 0.2s ease";
   inner.style.transform = "scale(0.985)";
@@ -1528,6 +1528,7 @@ function makeDoubleTappable(sectionEl, key, text) {
       Math.abs(e.clientY - lastTapY) <= MOVE_TOLERANCE;
 
     if (now - lastTapAt <= DOUBLE_TAP_MS && nearLastTap) {
+      e.preventDefault();
       lastTapAt = 0;
       triggerSave(key, text, badge, inner);
       return;
@@ -1541,6 +1542,10 @@ function makeDoubleTappable(sectionEl, key, text) {
 
   sectionEl.addEventListener("pointercancel", () => {
     lastTapAt = 0;
+  });
+
+  sectionEl.addEventListener("dblclick", (e) => {
+    e.preventDefault();
   });
 }
 
@@ -2861,10 +2866,28 @@ function startModulation() {
 }
 
 const focusBtn = document.getElementById("focusBtn");
-const focusLabel = document.getElementById("focusLabel");
+const focusIcon = focusBtn.querySelector(".focus-icon");
+const FOCUS_ICON_OFF = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun-icon lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+const FOCUS_ICON_ON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cloud-sun-rain-icon lucide-cloud-sun-rain"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M3 20a5 5 0 1 1 8.9-4H13a3 3 0 0 1 2 5.24"/><path d="M11 20v2"/><path d="M7 19v2"/></svg>`;
 const soakingAudio = new Audio("soaking.mp3");
 soakingAudio.loop = true;
 soakingAudio.volume = 0; // começa em 0 pra fazer fade-in
+
+function updateFocusButtonUi() {
+  focusBtn.classList.toggle("active", focusOn);
+  focusBtn.setAttribute("aria-pressed", String(focusOn));
+  focusBtn.setAttribute(
+    "aria-label",
+    focusOn ? "Desativar modo foco" : "Ativar modo foco",
+  );
+  focusBtn.setAttribute(
+    "title",
+    focusOn ? "Desativar modo foco" : "Ativar modo foco",
+  );
+  focusIcon.innerHTML = focusOn ? FOCUS_ICON_ON : FOCUS_ICON_OFF;
+}
+
+updateFocusButtonUi();
 
 function fadeAudio(el, target, duration = 900) {
   const start = el.volume;
@@ -2880,9 +2903,7 @@ function fadeAudio(el, target, duration = 900) {
 focusBtn.addEventListener("click", async () => {
   focusOn = !focusOn;
   document.body.classList.toggle("focus-active", focusOn);
-  focusBtn.classList.toggle("active", focusOn);
-  focusBtn.setAttribute("aria-pressed", String(focusOn));
-  focusLabel.textContent = focusOn ? "Foco ativo" : "Modo foco";
+  updateFocusButtonUi();
 
   if (focusOn) {
     try {
