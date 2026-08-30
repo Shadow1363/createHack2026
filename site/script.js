@@ -22,6 +22,28 @@ function currentRedirectUri() {
   return u.toString();
 }
 
+function parseReaderDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const chapter = parseInt(params.get("chapter") || "", 10);
+  const verse = parseInt(params.get("verse") || "", 10);
+  if (!Number.isFinite(chapter) || chapter < 1 || chapter > 50) return null;
+  if (!Number.isFinite(verse) || verse < 1) return null;
+  return {
+    chapterIndex: chapter - 1,
+    verseNumber: verse,
+    passageId: `GEN.${chapter}.${verse}`,
+  };
+}
+
+function clearReaderDeepLink() {
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete("chapter");
+    u.searchParams.delete("verse");
+    window.history.replaceState({}, document.title, u.toString());
+  } catch (_) {}
+}
+
 function b64url(buf) {
   let b = btoa(String.fromCharCode(...new Uint8Array(buf)));
   return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -908,6 +930,42 @@ const VIDEO_ANNOTATIONS = [
     playsInline: true,
     autoplayMuted: false,
   },
+  {
+    afterVerse: "GEN.3.1",
+    src: "./videos/ElevenLabs_video_gemini-omni-flash_A vibrant red f_2026-08-30T05_02_48.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.3.10",
+    src: "./videos/adameve.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.3.14",
+    src: "./videos/snake.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.7.11",
+    src: "./videos/noahsark.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
 ];
 
 function getVideosForChapter(contentId) {
@@ -936,7 +994,10 @@ let hintTaught = false;
 
 const savedCounter = document.createElement("div");
 savedCounter.className = "saved-counter";
-savedCounter.innerHTML = `<span class="cbookmark"></span><span id="savedCount">0</span> salvos`;
+savedCounter.innerHTML = `<span class="cbookmark"></span>`;
+savedCounter.setAttribute("role", "button");
+savedCounter.setAttribute("tabindex", "0");
+savedCounter.setAttribute("aria-label", "Abrir versículos salvos");
 document.body.appendChild(savedCounter);
 
 const toast = document.createElement("div");
@@ -949,6 +1010,7 @@ vignette.className = "focus-vignette";
 document.body.appendChild(vignette);
 
 let toastTimer = null;
+let pendingReaderDeepLink = parseReaderDeepLink();
 function showToast(message) {
   clearTimeout(toastTimer);
   toast.querySelector(".ttext").textContent = message;
@@ -960,6 +1022,18 @@ function updateSavedCounter() {
   document.getElementById("savedCount").textContent = savedSet.size;
   savedCounter.classList.toggle("show", savedSet.size > 0);
 }
+
+function openSavedVersesPage() {
+  const target = new URL("./saved.html", window.location.href);
+  window.open(target.toString(), "_blank", "noopener");
+}
+
+savedCounter.addEventListener("click", openSavedVersesPage);
+savedCounter.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  openSavedVersesPage();
+});
 
 function hideAllHints() {
   hintTaught = true;
@@ -1053,7 +1127,7 @@ async function fetchSimplifiedVerse(chapterData, verse) {
         {
           role: "system",
           content:
-            "Você simplifica um único versículo bíblico em português do Brasil. Seja fiel ao sentido, natural e fácil de entender. Responda somente com o texto final, sem aspas, sem introdução, sem listas, sem notas, com no máximo 2 frases curtas e até 240 caracteres.",
+            "Crie uma explicação com fidelidade bíblica, sem usar fontes externas, de forma que uma pessoa da geração Z possa compreender. Use palavras do grego para aprofundar um pouco e melhorar a explicação. Não ultrapasse 70 caracteres. Utilize Português.",
         },
         {
           role: "user",
@@ -1870,6 +1944,30 @@ function renderChapter(bundle, opts) {
     });
   }
 
+  if (
+    pendingReaderDeepLink &&
+    pendingReaderDeepLink.chapterIndex === currentChapterIndex
+  ) {
+    requestAnimationFrame(() => {
+      const targetEl = scroller.querySelector(
+        `[data-yv-passage="${pendingReaderDeepLink.passageId}"]`,
+      );
+      if (!targetEl) return;
+      targetEl.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "center",
+      });
+      setTimeout(
+        () => {
+          saveResumePosition(scroller.scrollTop);
+        },
+        prefersReducedMotion() ? 0 : 420,
+      );
+      pendingReaderDeepLink = null;
+      clearReaderDeepLink();
+    });
+  }
+
   saveResumePosition(pendingResumeScrollTop || 0);
 }
 
@@ -1950,10 +2048,11 @@ async function loadFirstChapter() {
   isLoadingNext = true;
   try {
     const saved = ResumeStorage.load();
-    const startIndex =
-      saved &&
-      saved.chapterIndex >= 0 &&
-      saved.chapterIndex < READING_PLAN.length
+    const startIndex = pendingReaderDeepLink
+      ? pendingReaderDeepLink.chapterIndex
+      : saved &&
+          saved.chapterIndex >= 0 &&
+          saved.chapterIndex < READING_PLAN.length
         ? saved.chapterIndex
         : 0;
     const firstBundle = await prefetchChapterBundle(startIndex);
@@ -1961,7 +2060,9 @@ async function loadFirstChapter() {
     planCursor = startIndex + 1;
     renderChapter(firstBundle, {
       scrollTop:
-        saved && saved.chapterIndex === startIndex ? saved.scrollTop : 0,
+        !pendingReaderDeepLink && saved && saved.chapterIndex === startIndex
+          ? saved.scrollTop
+          : 0,
     });
     schedulePrefetch(startIndex + 1);
   } finally {
