@@ -80,11 +80,36 @@ function consumePendingTogetherInvite() {
   }
 }
 
+// Hey stop peaking!
+const CHAT_GPT_TOKEN =
+  "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";
 function currentRedirectUri() {
   const u = new URL(window.location.href);
   u.search = "";
   u.hash = "";
   return u.toString();
+}
+
+function parseReaderDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const chapter = parseInt(params.get("chapter") || "", 10);
+  const verse = parseInt(params.get("verse") || "", 10);
+  if (!Number.isFinite(chapter) || chapter < 1 || chapter > 50) return null;
+  if (!Number.isFinite(verse) || verse < 1) return null;
+  return {
+    chapterIndex: chapter - 1,
+    verseNumber: verse,
+    passageId: `GEN.${chapter}.${verse}`,
+  };
+}
+
+function clearReaderDeepLink() {
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete("chapter");
+    u.searchParams.delete("verse");
+    window.history.replaceState({}, document.title, u.toString());
+  } catch (_) {}
 }
 
 function b64url(buf) {
@@ -973,6 +998,42 @@ const VIDEO_ANNOTATIONS = [
     playsInline: true,
     autoplayMuted: false,
   },
+  {
+    afterVerse: "GEN.3.1",
+    src: "./videos/ElevenLabs_video_gemini-omni-flash_A vibrant red f_2026-08-30T05_02_48.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.3.10",
+    src: "./videos/adameve.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.3.14",
+    src: "./videos/snake.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
+  {
+    afterVerse: "GEN.7.11",
+    src: "./videos/noahsark.mp4",
+    autoScrollAfterEnded: true,
+    onEnterScrollTo: true,
+    playFromStartOnReEnter: true,
+    playsInline: true,
+    autoplayMuted: false,
+  },
 ];
 
 function getVideosForChapter(contentId) {
@@ -1001,7 +1062,10 @@ let hintTaught = false;
 
 const savedCounter = document.createElement("div");
 savedCounter.className = "saved-counter";
-savedCounter.innerHTML = `<span class="cbookmark"></span><span id="savedCount">0</span> salvos`;
+savedCounter.innerHTML = `<span class="cbookmark"></span>`;
+savedCounter.setAttribute("role", "button");
+savedCounter.setAttribute("tabindex", "0");
+savedCounter.setAttribute("aria-label", "Abrir versículos salvos");
 document.body.appendChild(savedCounter);
 
 const toast = document.createElement("div");
@@ -1014,6 +1078,7 @@ vignette.className = "focus-vignette";
 document.body.appendChild(vignette);
 
 let toastTimer = null;
+let pendingReaderDeepLink = parseReaderDeepLink();
 function showToast(message) {
   clearTimeout(toastTimer);
   toast.querySelector(".ttext").textContent = message;
@@ -1026,6 +1091,18 @@ function updateSavedCounter() {
   savedCounter.classList.toggle("show", savedSet.size > 0);
 }
 
+function openSavedVersesPage() {
+  const target = new URL("./saved.html", window.location.href);
+  window.open(target.toString(), "_blank", "noopener");
+}
+
+savedCounter.addEventListener("click", openSavedVersesPage);
+savedCounter.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  openSavedVersesPage();
+});
+
 function hideAllHints() {
   hintTaught = true;
   document
@@ -1035,6 +1112,158 @@ function hideAllHints() {
 
 function preview(text) {
   return text.length > 46 ? text.slice(0, 46).trim() + "…" : text;
+}
+
+const AI_QUESTION_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-question-mark-icon lucide-message-circle-question-mark"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`;
+const AI_REPLY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-reply-icon lucide-message-circle-reply"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="m10 15-3-3 3-3"/><path d="M7 12h8a2 2 0 0 1 2 2v1"/></svg>`;
+const AI_REWORD_CACHE = new Map();
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function makeAiCacheKey(chapterData, verse) {
+  return `${chapterData.reference.human}::${verse.number}::${verse.text}`;
+}
+
+function buildChapterContext(chapterData) {
+  return chapterData.verses
+    .map((v) => `${v.number}. ${String(v.text || "").trim()}`)
+    .join("\n");
+}
+
+function setAiButtonState(btn, mode, loading) {
+  btn.classList.toggle("is-active", mode === "simplified");
+  btn.classList.toggle("is-loading", !!loading);
+  btn.disabled = !!loading;
+  btn.innerHTML = mode === "simplified" ? AI_REPLY_ICON : AI_QUESTION_ICON;
+  btn.setAttribute(
+    "aria-label",
+    mode === "simplified"
+      ? "Voltar ao texto original"
+      : "Reescrever em português simples",
+  );
+  btn.setAttribute(
+    "title",
+    mode === "simplified"
+      ? "Voltar ao texto original"
+      : "Reescrever em português simples",
+  );
+}
+
+async function typeText(textEl, nextText) {
+  const text = String(nextText || "").trim();
+  if (!text) return;
+  if (prefersReducedMotion()) {
+    textEl.textContent = text;
+    return;
+  }
+  textEl.classList.add("is-rewording");
+  await new Promise((resolve) => setTimeout(resolve, 90));
+  textEl.textContent = "";
+  textEl.classList.remove("is-rewording");
+  textEl.classList.add("is-typing");
+  const stepMs = text.length > 220 ? 7 : text.length > 140 ? 10 : 13;
+  for (let i = 1; i <= text.length; i += 1) {
+    textEl.textContent = text.slice(0, i);
+    // Keep the effect subtle and fast for casual reading.
+    await new Promise((resolve) => setTimeout(resolve, stepMs));
+  }
+  textEl.classList.remove("is-typing");
+}
+
+async function fetchSimplifiedVerse(chapterData, verse) {
+  const cacheKey = makeAiCacheKey(chapterData, verse);
+  if (AI_REWORD_CACHE.has(cacheKey)) return AI_REWORD_CACHE.get(cacheKey);
+
+  const chapterContext = buildChapterContext(chapterData);
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CHAT_GPT_TOKEN}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0.3,
+      max_tokens: 140,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Crie uma explicação com fidelidade bíblica, sem usar fontes externas, de forma que uma pessoa da geração Z possa compreender. Use palavras do grego para aprofundar um pouco e melhorar a explicação. Não ultrapasse 70 caracteres. Utilize Português.",
+        },
+        {
+          role: "user",
+          content:
+            `Capítulo completo para contexto (${chapterData.reference.human}):\n${chapterContext}\n\n` +
+            `Versículo alvo: ${verse.number}\n` +
+            `Texto original do versículo alvo: ${verse.text}\n\n` +
+            "Reescreva somente o versículo alvo em português simples, curto e claro.",
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(errorText || `OpenAI ${res.status}`);
+  }
+  const data = await res.json();
+  const content = String(data?.choices?.[0]?.message?.content || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!content) throw new Error("A IA não retornou texto.");
+  AI_REWORD_CACHE.set(cacheKey, content);
+  return content;
+}
+
+function makeAiRewordable(sectionEl, chapterData, verse) {
+  const textEl = sectionEl.querySelector(".verse-text");
+  const btn = sectionEl.querySelector(".ai-btn");
+  const originalText = String(verse.text || "");
+  let showingSimplified = false;
+  let simplifiedText = null;
+  let pending = false;
+
+  setAiButtonState(btn, "original", false);
+
+  btn.addEventListener("click", async () => {
+    if (pending) return;
+    pending = true;
+    try {
+      if (showingSimplified) {
+        setAiButtonState(btn, "original", true);
+        textEl.textContent = originalText;
+        showingSimplified = false;
+        setAiButtonState(btn, "original", false);
+        return;
+      }
+
+      setAiButtonState(btn, "original", true);
+      simplifiedText =
+        simplifiedText || (await fetchSimplifiedVerse(chapterData, verse));
+      await typeText(textEl, simplifiedText);
+      showingSimplified = true;
+      setAiButtonState(btn, "simplified", false);
+    } catch (e) {
+      setAiButtonState(
+        btn,
+        showingSimplified ? "simplified" : "original",
+        false,
+      );
+      showToast(
+        `Não foi possível simplificar agora: ${
+          e && e.message ? e.message : "erro inesperado"
+        }`,
+      );
+    } finally {
+      pending = false;
+    }
+  });
 }
 
 /* =========================================================================
@@ -1126,12 +1355,14 @@ function makeDoubleTappable(sectionEl, key, text) {
 
   sectionEl.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target && e.target.closest && e.target.closest(".ai-btn")) return;
     pointerDownX = e.clientX;
     pointerDownY = e.clientY;
   });
 
   sectionEl.addEventListener("pointerup", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target && e.target.closest && e.target.closest(".ai-btn")) return;
     const dx = e.clientX - pointerDownX;
     const dy = e.clientY - pointerDownY;
     if (Math.abs(dx) > MOVE_TOLERANCE || Math.abs(dy) > MOVE_TOLERANCE) return;
@@ -1206,6 +1437,7 @@ function buildVerseSection(chapterData, verse, isFirstEver, yvContentId) {
       <div class="verse-inner">
         <p class="verse-num">${chapterData.reference.human} · ${verse.number}</p>
         <p class="verse-text">${verse.text}</p>
+        <button class="ai-btn" type="button" aria-label="Reescrever em português simples" title="Reescrever em português simples">${AI_QUESTION_ICON}</button>
         ${isFirstEver ? '<p class="swipe-hint"><span class="harrow">••</span> Toque duas vezes para salvar</p>' : ""}
       </div>
       <span class="save-badge ${isSaved ? "saved" : ""}" aria-hidden="true"></span>
@@ -1216,6 +1448,7 @@ function buildVerseSection(chapterData, verse, isFirstEver, yvContentId) {
     badge.style.transform = "scale(1)";
   }
   makeDoubleTappable(sec, key, verse.text);
+  makeAiRewordable(sec, chapterData, verse);
   return sec;
 }
 
@@ -1494,7 +1727,7 @@ function attachVideoBehaviors(scrollerEl) {
 
 function buildEndOfChapterMcqSection(mcq, onContinue) {
   const sec = document.createElement("div");
-  sec.className = "section";
+  sec.className = "section quiz-section";
   sec.setAttribute("data-ref", "Quiz fim do capítulo");
   sec.innerHTML = `
       <p class="eyebrow">Final do capítulo — múltipla escolha</p>
@@ -1779,6 +2012,30 @@ function renderChapter(bundle, opts) {
     });
   }
 
+  if (
+    pendingReaderDeepLink &&
+    pendingReaderDeepLink.chapterIndex === currentChapterIndex
+  ) {
+    requestAnimationFrame(() => {
+      const targetEl = scroller.querySelector(
+        `[data-yv-passage="${pendingReaderDeepLink.passageId}"]`,
+      );
+      if (!targetEl) return;
+      targetEl.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "center",
+      });
+      setTimeout(
+        () => {
+          saveResumePosition(scroller.scrollTop);
+        },
+        prefersReducedMotion() ? 0 : 420,
+      );
+      pendingReaderDeepLink = null;
+      clearReaderDeepLink();
+    });
+  }
+
   saveResumePosition(pendingResumeScrollTop || 0);
 }
 
@@ -1859,10 +2116,11 @@ async function loadFirstChapter() {
   isLoadingNext = true;
   try {
     const saved = ResumeStorage.load();
-    const startIndex =
-      saved &&
-      saved.chapterIndex >= 0 &&
-      saved.chapterIndex < READING_PLAN.length
+    const startIndex = pendingReaderDeepLink
+      ? pendingReaderDeepLink.chapterIndex
+      : saved &&
+          saved.chapterIndex >= 0 &&
+          saved.chapterIndex < READING_PLAN.length
         ? saved.chapterIndex
         : 0;
     const firstBundle = await prefetchChapterBundle(startIndex);
@@ -1870,7 +2128,9 @@ async function loadFirstChapter() {
     planCursor = startIndex + 1;
     renderChapter(firstBundle, {
       scrollTop:
-        saved && saved.chapterIndex === startIndex ? saved.scrollTop : 0,
+        !pendingReaderDeepLink && saved && saved.chapterIndex === startIndex
+          ? saved.scrollTop
+          : 0,
     });
     schedulePrefetch(startIndex + 1);
   } finally {
@@ -2521,6 +2781,8 @@ focusBtn.addEventListener("click", async () => {
     rain.gain.gain.cancelScheduledValues(audioCtx.currentTime);
     rain.gain.gain.setValueAtTime(rain.gain.gain.value, audioCtx.currentTime);
     rain.gain.gain.linearRampToValueAtTime(0.16, audioCtx.currentTime + 1.4);
+    const jumpBtn = document.getElementsByClassName("jump-btn")[0];
+    jumpBtn.style.display = "none";
     showToast("Modo foco ativado — som suave ligado");
   } else {
     if (rain) {
@@ -2528,6 +2790,8 @@ focusBtn.addEventListener("click", async () => {
       rain.gain.gain.setValueAtTime(rain.gain.gain.value, audioCtx.currentTime);
       rain.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.9);
     }
+    const jumpBtn = document.getElementsByClassName("jump-btn")[0];
+    jumpBtn.style.display = "block";
     showToast("Modo foco desativado");
   }
 });

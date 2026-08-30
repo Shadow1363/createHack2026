@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Versículos salvos</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body.saved-page {
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top, rgba(201, 161, 90, 0.08), transparent 36%),
+          var(--ink);
+        color: var(--parchment);
+      }
+
+      .saved-shell {
+        width: min(920px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 72px 0 96px;
+      }
+
+      .saved-top {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 34px;
+      }
+
+      .saved-back {
+        width: fit-content;
+        color: var(--parchment-dim);
+        text-decoration: none;
+        font: 500 12px/1 "Inter", sans-serif;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .saved-title {
+        margin: 0;
+        font-family: "Fraunces", serif;
+        font-size: clamp(34px, 7vw, 64px);
+        line-height: 0.98;
+        color: var(--parchment);
+      }
+
+      .saved-sub {
+        margin: 0;
+        max-width: 620px;
+        color: var(--parchment-dim);
+        font: 400 15px/1.7 "Inter", sans-serif;
+      }
+
+      .saved-groups {
+        display: grid;
+        gap: 18px;
+      }
+
+      .saved-group {
+        border: 1px solid var(--rule);
+        border-radius: 26px;
+        background: rgba(25, 28, 38, 0.82);
+        padding: 18px;
+      }
+
+      .saved-group-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .saved-group-title {
+        margin: 0;
+        font-family: "Fraunces", serif;
+        font-size: clamp(24px, 4vw, 32px);
+        color: var(--parchment);
+      }
+
+      .saved-group-count {
+        color: var(--parchment-dim);
+        font: 500 11px/1 "Inter", sans-serif;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .saved-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .saved-link {
+        display: grid;
+        gap: 6px;
+        text-decoration: none;
+        color: inherit;
+        border-radius: 18px;
+        padding: 14px 16px;
+        background: rgba(236, 229, 214, 0.025);
+        border: 1px solid transparent;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background-color 0.18s ease;
+      }
+
+      .saved-link:hover {
+        transform: translateY(-1px);
+        border-color: rgba(201, 161, 90, 0.22);
+        background: rgba(201, 161, 90, 0.06);
+      }
+
+      .saved-ref {
+        color: var(--gold);
+        font: 600 12px/1.2 "Inter", sans-serif;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .saved-text {
+        color: var(--parchment);
+        font: 400 clamp(18px, 2.2vw, 24px) / 1.48 "Fraunces", serif;
+      }
+
+      .saved-empty,
+      .saved-loading {
+        border: 1px solid var(--rule);
+        border-radius: 26px;
+        padding: 28px 24px;
+        color: var(--parchment-dim);
+        font: 400 15px/1.7 "Inter", sans-serif;
+        background: rgba(25, 28, 38, 0.65);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .saved-link,
+        .saved-back {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body class="saved-page">
+    <main class="saved-shell">
+      <header class="saved-top">
+        <a class="saved-back" href="./index.html">Voltar ao leitor</a>
+        <h1 class="saved-title">Versículos salvos</h1>
+        <p class="saved-sub" id="savedSummary">
+          Carregando seus destaques e organizando por capítulo…
+        </p>
+      </header>
+
+      <section class="saved-groups" id="savedGroups">
+        <div class="saved-loading">Buscando seus versículos salvos…</div>
+      </section>
+    </main>
+
+    <script>
+      const CONFIG = {
+        YOUVERSION_API_BASE: "https://api.youversion.com",
+        YOUVERSION_API_KEY: "ajYk9dX4TPPGS7LFLE0evy5jkT0FBO8QjAfoAnIAGYq5WUei",
+        YOUVERSION_BIBLE_VERSION_ID: 3254,
+      };
+      const HIGHLIGHTS_MIRROR_KEY = "genesis_reader_highlights_v1";
+
+      function stripHtmlTags(str) {
+        return String(str || "")
+          .replace(/<[^>]*>/g, "")
+          .trim();
+      }
+
+      function parseChapterVersesFromHtml(htmlContent) {
+        const html = htmlContent || "";
+        const markerRegex =
+          /<span class="yv-v"\s+v="(\d+)"\s*><\/span><span class="yv-vlbl">\d+<\/span>/g;
+        const verses = [];
+        let lastIndex = 0;
+        let lastNum = null;
+        let match;
+        while ((match = markerRegex.exec(html)) !== null) {
+          if (lastNum !== null) {
+            const rawSlice = html.slice(lastIndex, match.index);
+            const text = stripHtmlTags(rawSlice).replace(/\s+/g, " ").trim();
+            if (text) verses.push({ number: lastNum, text });
+          }
+          lastNum = parseInt(match[1], 10);
+          lastIndex = markerRegex.lastIndex;
+        }
+        if (lastNum !== null) {
+          const rawSlice = html.slice(lastIndex);
+          const text = stripHtmlTags(rawSlice).replace(/\s+/g, " ").trim();
+          if (text) verses.push({ number: lastNum, text });
+        }
+        return verses;
+      }
+
+      function readMirror() {
+        try {
+          const raw = localStorage.getItem(HIGHLIGHTS_MIRROR_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return parsed && Array.isArray(parsed.highlights) ? parsed.highlights : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function parsePassageId(passageId) {
+        const match = /^GEN\.(\d+)\.(\d+)$/i.exec(String(passageId || ""));
+        if (!match) return null;
+        return {
+          chapter: parseInt(match[1], 10),
+          verse: parseInt(match[2], 10),
+          passageId,
+        };
+      }
+
+      async function getChapterVerses(chapter) {
+        const res = await fetch(
+          `${CONFIG.YOUVERSION_API_BASE}/v1/bibles/${CONFIG.YOUVERSION_BIBLE_VERSION_ID}/passages/GEN.${chapter}?format=html&include_headings=true`,
+          {
+            headers: {
+              Accept: "application/json",
+              "x-yvp-app-key": CONFIG.YOUVERSION_API_KEY,
+            },
+          },
+        );
+        if (!res.ok) throw new Error(`Capítulo ${chapter}: ${res.status}`);
+        const data = await res.json();
+        return parseChapterVersesFromHtml(data.content || "");
+      }
+
+      function groupByChapter(items) {
+        const map = new Map();
+        items.forEach((item) => {
+          const arr = map.get(item.chapter) || [];
+          arr.push(item);
+          map.set(item.chapter, arr);
+        });
+        return Array.from(map.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([chapter, verses]) => ({
+            chapter,
+            verses: verses.sort((a, b) => a.verse - b.verse),
+          }));
+      }
+
+      function renderEmpty() {
+        document.getElementById("savedSummary").textContent =
+          "Nenhum versículo salvo ainda.";
+        document.getElementById("savedGroups").innerHTML =
+          '<div class="saved-empty">Salve algum versículo no leitor e ele aparece aqui com link direto para o capítulo e o versículo.</div>';
+      }
+
+      function renderGroups(groups) {
+        const total = groups.reduce((sum, group) => sum + group.verses.length, 0);
+        document.getElementById("savedSummary").textContent =
+          `${total} versículo(s) salvo(s), organizados para abrir direto no ponto certo da leitura.`;
+        document.getElementById("savedGroups").innerHTML = groups
+          .map(
+            (group) => `
+              <article class="saved-group">
+                <div class="saved-group-head">
+                  <h2 class="saved-group-title">Gênesis ${group.chapter}</h2>
+                  <span class="saved-group-count">${group.verses.length} salvo(s)</span>
+                </div>
+                <div class="saved-list">
+                  ${group.verses
+                    .map(
+                      (item) => `
+                        <a class="saved-link" href="./index.html?chapter=${item.chapter}&verse=${item.verse}">
+                          <span class="saved-ref">Gênesis ${item.chapter}:${item.verse}</span>
+                          <span class="saved-text">${item.text || "Abrir versículo no leitor"}</span>
+                        </a>
+                      `,
+                    )
+                    .join("")}
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      async function init() {
+        const parsed = readMirror()
+          .map((item) => parsePassageId(item.passage_id))
+          .filter(Boolean);
+        if (!parsed.length) {
+          renderEmpty();
+          return;
+        }
+
+        const chapters = [...new Set(parsed.map((item) => item.chapter))];
+        const chapterVerseMap = new Map();
+        await Promise.all(
+          chapters.map(async (chapter) => {
+            try {
+              chapterVerseMap.set(chapter, await getChapterVerses(chapter));
+            } catch (_) {
+              chapterVerseMap.set(chapter, []);
+            }
+          }),
+        );
+
+        const enriched = parsed.map((item) => {
+          const verses = chapterVerseMap.get(item.chapter) || [];
+          const found = verses.find((verse) => verse.number === item.verse);
+          return {
+            ...item,
+            text: found ? found.text : "",
+          };
+        });
+
+        renderGroups(groupByChapter(enriched));
+      }
+
+      init().catch(() => renderEmpty());
+    </script>
+  </body>
+</html>
