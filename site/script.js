@@ -645,7 +645,7 @@ const HighlightsSource = {
 async function hydrateSavedSetFromMirrorOnly() {
   const inMirror = HighlightsSource.getSavedSetFromMirror();
   inMirror.forEach((p) => savedSet.add(p));
-  // updateSavedCounter();
+  updateSavedCounter();
 }
 
 function repaintAllSaveBadges(rootEl) {
@@ -682,7 +682,7 @@ async function syncChapterHighlightsWithApi(yvContentId, verseNumbers, rootEl) {
     }
   });
   await Promise.all(fetches).catch(() => {});
-  // if (changed) updateSavedCounter();
+  if (changed) updateSavedCounter();
   repaintAllSaveBadges(rootEl || scroller);
 }
 
@@ -1051,6 +1051,7 @@ function updateSavedCounter() {
     "aria-label",
     savedSet.size > 0 ? "Abrir versículos salvos" : "Nenhum versículo salvo",
   );
+  void refreshSavedSheetIfOpen();
 }
 
 function hideAllHints() {
@@ -1524,6 +1525,34 @@ async function loadSavedSheetItems() {
   return items;
 }
 
+async function refreshSavedSheetIfOpen() {
+  if (!savedSheetState.open) return;
+  const requestId = savedSheetState.requestId + 1;
+  savedSheetState.requestId = requestId;
+  try {
+    const items = await loadSavedSheetItems();
+    if (!savedSheetState.open || savedSheetState.requestId !== requestId)
+      return;
+    renderSavedSheetList(items);
+    requestAnimationFrame(() => {
+      if (!savedSheetState.open || savedSheetState.dragging) return;
+      savedSheetState.collapsedOffset = getSavedSheetCollapsedOffset();
+      const nextOffset =
+        savedSheetState.currentOffset <= savedSheetState.collapsedOffset / 2
+          ? 0
+          : savedSheetState.collapsedOffset;
+      applySavedSheetOffset(nextOffset, true);
+    });
+  } catch (_) {
+    if (!savedSheetState.open || savedSheetState.requestId !== requestId)
+      return;
+    setSavedSheetStateText(
+      "Não foi possível carregar seus versículos salvos agora.",
+      "is-empty",
+    );
+  }
+}
+
 function openSavedPassage(item) {
   pendingReaderDeepLink = {
     chapterIndex: item.chapter - 1,
@@ -1783,7 +1812,7 @@ function triggerSave(key, text, badge, inner) {
       }
     });
   }
-  // updateSavedCounter();
+  updateSavedCounter();
   inner.style.transition =
     "transform 0.28s cubic-bezier(.25,.8,.3,1.25), opacity 0.2s ease";
   inner.style.transform = "scale(0.985)";

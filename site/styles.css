@@ -475,16 +475,22 @@ body {
   transform: scale(0.97);
 }
 .saved-sheet-body {
+  display: grid;
   min-height: 0;
+  height: 100%;
   padding: 0 20px calc(22px + env(safe-area-inset-bottom));
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  align-content: start;
 }
 .saved-sheet-list {
   display: grid;
   gap: 18px;
+  min-height: 0;
+  padding-bottom: 8px;
 }
 .saved-sheet-list.is-loading,
 .saved-sheet-list.is-empty {
@@ -510,6 +516,7 @@ body {
 .saved-sheet-group-list {
   display: grid;
   gap: 8px;
+  min-height: 0;
 }
 .saved-sheet-item {
   appearance: none;
