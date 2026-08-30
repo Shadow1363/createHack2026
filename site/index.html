@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gênesis — leitura contínua</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="logo.png" type="image/png" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <div class="progress">
@@ -53,6 +54,9 @@
         <div class="login-brand">
           <img class="login-ico-big" src="logo.png" alt="Zmode" />
           <p class="login-sub">Para Gen Z, Feito pelo Gen Z</p>
+          <p class="login-invite-note" id="loginInviteNote" hidden>
+            Você foi convidado(a) para uma leitura juntos. Entre ou continue sem conta para aceitar.
+          </p>
         </div>
 
         <!-- <div class="login-perms" id="loginPerms">
@@ -112,6 +116,45 @@
     <button class="logout-btn" id="logoutBtn" type="button" hidden>Sair</button>
 
     <div class="scroller" id="scroller"></div>
-    <script src="script.js"></script>
+
+    <div class="app-view" id="togetherView" hidden></div>
+    <div class="app-view" id="youView" hidden></div>
+
+    <nav class="tabbar" id="tabbar" hidden>
+      <button class="tabbar-btn is-active" id="tabRead" type="button" data-tab="read" onclick="window.Together&&Together.switchTab('read')">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5c2-1 5-1 8 0v13c-3-1-6-1-8 0v-13Z"/><path d="M20 5.5c-2-1-5-1-8 0v13c3-1 6-1 8 0v-13Z"/></svg>
+        <span>Read</span>
+      </button>
+      <button class="tabbar-btn" id="tabTogether" type="button" data-tab="together" onclick="window.Together&&Together.switchTab('together')">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.3c2.3.3 4.5 2.2 4.5 5.7"/></svg>
+        <span>Together</span>
+      </button>
+      <button class="tabbar-btn" id="tabYou" type="button" data-tab="you" onclick="window.Together&&Together.switchTab('you')">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+        <span>You</span>
+      </button>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-client.js?v=9"></script>
+    <script src="together.js?v=9"></script>
+    <script src="script.js?v=9"></script>
+    <script>
+      (function wireTabbar() {
+        var bar = document.getElementById("tabbar");
+        if (!bar || bar.dataset.wired === "1") return;
+        bar.dataset.wired = "1";
+        bar.addEventListener("click", function (e) {
+          var btn = e.target.closest("[data-tab]");
+          if (!btn || !bar.contains(btn)) return;
+          if (window.Together && typeof window.Together.switchTab === "function") {
+            window.Together.switchTab(btn.getAttribute("data-tab"));
+          }
+        });
+        if (window.Together && typeof window.Together.init === "function") {
+          window.Together.init();
+        }
+      })();
+    </script>
   </body>
 </html>
