@@ -12,6 +12,74 @@
 const AUTH_STORAGE_KEY = "genesis_reader_yv_auth_v1";
 const AUTH_PKCE_KEY = "genesis_reader_yv_pkce_v1";
 const AUTH_DEX_KEY = "genesis_reader_yv_dex_v1";
+const TOGETHER_INVITE_KEY = "together_pending_join_v1";
+
+function isTogetherSessionId(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+}
+
+function stashTogetherInvite(sessionId) {
+  if (!isTogetherSessionId(sessionId)) return;
+  try {
+    localStorage.setItem(
+      TOGETHER_INVITE_KEY,
+      JSON.stringify({ id: sessionId, at: Date.now() }),
+    );
+  } catch (_) {}
+}
+
+function peekTogetherInvite() {
+  try {
+    const raw = localStorage.getItem(TOGETHER_INVITE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    if (!v || !isTogetherSessionId(v.id)) return null;
+    if (Date.now() - (v.at || 0) > 48 * 3600 * 1000) return null;
+    return v.id;
+  } catch (_) {
+    return null;
+  }
+}
+
+function takeTogetherInvite() {
+  const id = peekTogetherInvite();
+  try {
+    localStorage.removeItem(TOGETHER_INVITE_KEY);
+  } catch (_) {}
+  return id;
+}
+
+function stashAndStripTogetherInviteFromUrl() {
+  try {
+    const u = new URL(window.location.href);
+    const id = u.searchParams.get("together") || u.searchParams.get("join");
+    if (isTogetherSessionId(id)) {
+      stashTogetherInvite(id);
+      u.searchParams.delete("together");
+      u.searchParams.delete("join");
+      window.history.replaceState({}, document.title, u.toString());
+    }
+  } catch (_) {}
+}
+
+function consumePendingTogetherInvite() {
+  const id = takeTogetherInvite();
+  if (!id) return;
+  const tryOpen = () => {
+    if (window.Together && typeof window.Together.openInviteLink === "function") {
+      window.Together.openInviteLink(id);
+      return true;
+    }
+    return false;
+  };
+  if (!tryOpen()) {
+    setTimeout(tryOpen, 0);
+    window.addEventListener("load", tryOpen, { once: true });
+  }
+}
+
 // Hey stop peaking!
 const CHAT_GPT_TOKEN =
   "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";
@@ -3402,6 +3470,11 @@ function showCard(which) {
   loginCard.hidden = which !== "login";
   loadingCard.hidden = which !== "loading";
   errorCard.hidden = which !== "error";
+  const inviteNote = document.getElementById("loginInviteNote");
+  if (inviteNote) {
+    const pending = peekTogetherInvite();
+    inviteNote.hidden = which !== "login" || !pending;
+  }
 }
 function hideLoginShell() {
   loginShell.style.display = "none";
@@ -3478,9 +3551,37 @@ function hydrateBearerFromStorage() {
   return null;
 }
 
+function syncTogetherProfileFromSession() {
+  if (!window.TogetherDB) return;
+  const sess = loadAuthSession();
+  const claims = sess && sess.id_token ? parseJwtPayload(sess.id_token) : null;
+  const task = claims
+    ? window.TogetherDB.linkYouVersionProfile(claims)
+    : window.TogetherDB.ensureSession();
+  task.catch((e) =>
+    console.warn("[Together] Falha ao sincronizar perfil Supabase:", e),
+  );
+}
+
 function initReaderAndHooks() {
   loginShell && (loginShell.style.display = "none");
   logoutBtn.hidden = !CONFIG.YOUVERSION_BEARER_TOKEN;
+
+  syncTogetherProfileFromSession();
+  const tabbarEl = document.getElementById("tabbar");
+  if (tabbarEl) tabbarEl.hidden = false;
+  const tryInitTogether = () => {
+    if (window.Together && typeof window.Together.init === "function") {
+      window.Together.init();
+      return true;
+    }
+    return false;
+  };
+  if (!tryInitTogether()) {
+    setTimeout(tryInitTogether, 0);
+    document.addEventListener("DOMContentLoaded", tryInitTogether, { once: true });
+    window.addEventListener("load", tryInitTogether, { once: true });
+  }
 
   initChapterController();
 
@@ -3504,6 +3605,8 @@ function initReaderAndHooks() {
       saveResumePosition(scroller.scrollTop);
     }
   });
+
+  consumePendingTogetherInvite();
 }
 
 function wireLoginButtons() {
@@ -3536,6 +3639,7 @@ function wireLoginButtons() {
 }
 
 async function handleRedirect() {
+  stashAndStripTogetherInviteFromUrl();
   const qParams = new URLSearchParams(window.location.search);
   const hParams = new URLSearchParams(
     window.location.hash ? window.location.hash.slice(1) : "",
