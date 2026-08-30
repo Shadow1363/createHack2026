@@ -388,7 +388,7 @@ const BibleSource = {
 
    A API de highlights é por usuário e requer Bearer token (OAuth). Quando
    você tiver o token do usuário, basta preencher CONFIG.YOUVERSION_BEARER_TOKEN
-   e os versículos salvos (swipe-to-save) serão sincronizados:
+   e os versículos salvos (double-tap-to-save) serão sincronizados:
      - GET    /v1/highlights?bible_id=X&passage_id=GEN.1.3  -> listar
      - POST   /v1/highlights                                -> criar/atualizar
      - DELETE /v1/highlights/{passage_id}?bible_id=X       -> limpar
@@ -676,6 +676,19 @@ const TriviaSource = {
   async getMidChapterTrivia(contentId) {
     await new Promise((r) => setTimeout(r, 60));
     const chapter = parseInt(String(contentId).replace(/^GEN\./, ""), 10);
+
+    /*
+Gn 2:7	
+O nome "Adao" vem do hebraico adamah, que significa terra ou solo. E um jogo de palavras no original: o homem (adam) e formado do solo (adamah).
+Gn 4:17	Caim constroi a primeira cidade mencionada na Biblia, chamada Enoque.
+Gn 5:27	Matusalem vive 969 anos, a maior idade registrada na Biblia.
+Gn 6:15	
+A arca tinha aproximadamente 137m de comprimento por 23m de largura, usando o covado comum (~45cm). Pra efeito de comparacao, e proximo do comprimento de um campo e meio de futebol.
+Gn 11:9	
+"Babel" e associada ao hebraico balal, confundir. Curiosamente, em acadio a mesma palavra (Bab-ili) significa "porta dos deuses", o oposto do sentido biblico.
+Gn 50:26	Jose morre aos 110 anos, idade considerada o ideal de vida plena na cultura egipcia antiga.
+*/
+
     const bank = [
       {
         q: "Quantos dias de criação aparecem em Gênesis 1?",
@@ -958,7 +971,7 @@ function preview(text) {
 }
 
 /* =========================================================================
-   SWIPE-TO-SAVE — sincronizado com a API de highlights YouVersion.
+   DOUBLE-TAP-TO-SAVE — sincronizado com a API de highlights YouVersion.
    (documentação: https://developers.youversion.com/api/highlights)
 
    Fluxo de cada save/unsave:
@@ -1008,116 +1021,75 @@ function triggerSave(key, text, badge, inner) {
   }
   updateSavedCounter();
   inner.style.transition =
-    "transform 0.4s cubic-bezier(.25,.8,.3,1.25), opacity 0.3s ease";
+    "transform 0.28s cubic-bezier(.25,.8,.3,1.25), opacity 0.2s ease";
+  inner.style.transform = "scale(0.985)";
+  inner.style.opacity = "0.92";
   requestAnimationFrame(() => {
-    inner.style.transform = "translateX(0) rotate(0deg)";
+    inner.style.transform = "scale(1)";
     inner.style.opacity = "1";
   });
   setTimeout(() => {
     inner.style.transition = "";
-  }, 420);
+  }, 300);
 }
 
-function makeSwipeable(sectionEl, key, text) {
+function makeDoubleTappable(sectionEl, key, text) {
   const inner = sectionEl.querySelector(".verse-inner");
   const badge = sectionEl.querySelector(".save-badge");
-  const THRESHOLD = 90;
-  let startX = 0,
-    startY = 0,
-    dragging = false,
-    decided = false,
-    horizontal = false;
+  const DOUBLE_TAP_MS = 320;
+  const MOVE_TOLERANCE = 18;
+  let lastTapAt = 0;
+  let lastTapX = 0;
+  let lastTapY = 0;
+  let pointerDownX = 0;
+  let pointerDownY = 0;
 
-  function liveTransform(dx) {
-    const translate = dx > 0 ? Math.min(dx * 0.9, 170) : dx * 0.15;
-    inner.style.transform = `translateX(${translate}px) rotate(${translate * 0.03}deg)`;
-    inner.style.opacity = String(1 - Math.min(Math.abs(translate), 170) / 260);
-    const ratio = Math.min(Math.max(translate, 0) / THRESHOLD, 1);
-    badge.style.opacity = String(ratio);
-    badge.style.transform = `scale(${0.6 + ratio * 0.5})`;
-    return translate;
-  }
-
-  function resetTransform() {
-    inner.style.transition =
-      "transform 0.4s cubic-bezier(.2,.8,.2,1), opacity 0.4s ease";
-    inner.style.transform = "translateX(0) rotate(0deg)";
-    inner.style.opacity = "1";
-    const isSaved = savedSet.has(key);
-    badge.style.opacity = isSaved ? "1" : "0";
-    badge.style.transform = isSaved ? "scale(1)" : "scale(0.6)";
+  function pulse() {
+    inner.style.transition = "transform 0.16s ease, opacity 0.16s ease";
+    inner.style.transform = "scale(0.99)";
+    inner.style.opacity = "0.96";
+    setTimeout(() => {
+      inner.style.transform = "scale(1)";
+      inner.style.opacity = "1";
+    }, 16);
     setTimeout(() => {
       inner.style.transition = "";
-    }, 420);
+    }, 180);
   }
 
   sectionEl.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    startX = e.clientX;
-    startY = e.clientY;
-    dragging = true;
-    decided = false;
-    horizontal = false;
-    inner.style.transition = "none";
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
   });
 
-  sectionEl.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX,
-      dy = e.clientY - startY;
-    if (!decided) {
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-        decided = true;
-        horizontal = Math.abs(dx) > Math.abs(dy);
-        if (horizontal) {
-          sectionEl.setPointerCapture(e.pointerId);
-          hideAllHints();
-        }
-      } else return;
-    }
-    if (!horizontal) return;
-    liveTransform(dx);
-  });
+  sectionEl.addEventListener("pointerup", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const dx = e.clientX - pointerDownX;
+    const dy = e.clientY - pointerDownY;
+    if (Math.abs(dx) > MOVE_TOLERANCE || Math.abs(dy) > MOVE_TOLERANCE) return;
 
-  function endDrag(e) {
-    if (!dragging) return;
-    dragging = false;
-    if (!horizontal) return;
-    const dx = (typeof e.clientX === "number" ? e.clientX : startX) - startX;
-    if (dx > THRESHOLD) {
+    hideAllHints();
+    const now = Date.now();
+    const nearLastTap =
+      Math.abs(e.clientX - lastTapX) <= MOVE_TOLERANCE &&
+      Math.abs(e.clientY - lastTapY) <= MOVE_TOLERANCE;
+
+    if (now - lastTapAt <= DOUBLE_TAP_MS && nearLastTap) {
+      lastTapAt = 0;
       triggerSave(key, text, badge, inner);
-    } else {
-      resetTransform();
+      return;
     }
-  }
 
-  sectionEl.addEventListener("pointerup", endDrag);
-  sectionEl.addEventListener("pointercancel", endDrag);
+    lastTapAt = now;
+    lastTapX = e.clientX;
+    lastTapY = e.clientY;
+    pulse();
+  });
 
-  let accum = 0,
-    wheelResetTimer = null;
-  sectionEl.addEventListener(
-    "wheel",
-    (e) => {
-      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-      e.preventDefault();
-      hideAllHints();
-      accum += e.deltaX;
-      inner.style.transition = "none";
-      const translate = liveTransform(accum * 0.6);
-      clearTimeout(wheelResetTimer);
-      if (translate >= THRESHOLD) {
-        accum = 0;
-        triggerSave(key, text, badge, inner);
-      } else {
-        wheelResetTimer = setTimeout(() => {
-          accum = 0;
-          resetTransform();
-        }, 300);
-      }
-    },
-    { passive: false },
-  );
+  sectionEl.addEventListener("pointercancel", () => {
+    lastTapAt = 0;
+  });
 }
 
 /* =========================================================================
@@ -1167,7 +1139,7 @@ function buildVerseSection(chapterData, verse, isFirstEver, yvContentId) {
       <div class="verse-inner">
         <p class="verse-num">${chapterData.reference.human} · ${verse.number}</p>
         <p class="verse-text">${verse.text}</p>
-        ${isFirstEver ? '<p class="swipe-hint"><span class="harrow">→</span> Deslize para a direita para salvar</p>' : ""}
+        ${isFirstEver ? '<p class="swipe-hint"><span class="harrow">••</span> Toque duas vezes para salvar</p>' : ""}
       </div>
       <span class="save-badge ${isSaved ? "saved" : ""}" aria-hidden="true"></span>
     `;
@@ -1176,7 +1148,7 @@ function buildVerseSection(chapterData, verse, isFirstEver, yvContentId) {
     badge.style.opacity = "1";
     badge.style.transform = "scale(1)";
   }
-  makeSwipeable(sec, key, verse.text);
+  makeDoubleTappable(sec, key, verse.text);
   return sec;
 }
 
