@@ -699,43 +699,217 @@ async function syncChapterHighlightsWithApi(yvContentId, verseNumbers, rootEl) {
 const TriviaSource = {
   async getMidChapterTrivia(contentId) {
     await new Promise((r) => setTimeout(r, 60));
-    const chapter = parseInt(String(contentId).replace(/^GEN\./, ""), 10);
+    const chapter = parseInt(String(contentId).replace(/^GEN./, ""), 10);
 
-    /*
-Gn 2:7	
-O nome "Adao" vem do hebraico adamah, que significa terra ou solo. E um jogo de palavras no original: o homem (adam) e formado do solo (adamah).
-Gn 4:17	Caim constroi a primeira cidade mencionada na Biblia, chamada Enoque.
-Gn 5:27	Matusalem vive 969 anos, a maior idade registrada na Biblia.
-Gn 6:15	
-A arca tinha aproximadamente 137m de comprimento por 23m de largura, usando o covado comum (~45cm). Pra efeito de comparacao, e proximo do comprimento de um campo e meio de futebol.
-Gn 11:9	
-"Babel" e associada ao hebraico balal, confundir. Curiosamente, em acadio a mesma palavra (Bab-ili) significa "porta dos deuses", o oposto do sentido biblico.
-Gn 50:26	Jose morre aos 110 anos, idade considerada o ideal de vida plena na cultura egipcia antiga.
-*/
+    const chapterBank = {
+      1: {
+        q: "Relatos da Criação 🌍",
+        a: "Outros povos da Mesopotâmia também possuíam histórias sobre a criação do mundo.",
+      },
+      2: {
+        q: "Adão e a Terra 🧑 / Rios do Éden 🌿",
+        a: "O nome 'Adão' vem do hebraico adamah (terra/solo). Os rios Tigre e Eufrates, citados no capítulo, são rios reais.",
+      },
+      3: {
+        q: "A serpente 🐍",
+        a: "Serpentes possuíam forte simbolismo religioso nas culturas do mundo antigo.",
+      },
+      4: {
+        q: "Primeira cidade 🏘️",
+        a: "Caim constrói a primeira cidade mencionada na Bíblia, chamada Enoque (Gn 4:17).",
+      },
+      5: {
+        q: "969 anos ⏳",
+        a: "Matusalém vive 969 anos, a pessoa com maior longevidade registrada na Bíblia (Gn 5:27).",
+      },
+      6: {
+        q: "A Arca 🚢",
+        a: "Tinha ~137m de comprimento (um campo e meio de futebol). A Bíblia não menciona velas ou remos; sua função era flutuar e preservar.",
+      },
+      7: {
+        q: "Outros dilúvios 🌊",
+        a: "Textos mesopotâmicos antigos, como o Épico de Gilgamesh, também contam histórias sobre grandes dilúvios.",
+      },
+      8: {
+        q: "O Corvo e a Pomba 🕊️",
+        a: "Noé soltou primeiro um corvo, que ficava voando de um lado pro outro, antes de soltar a famosa pomba (Gn 8:7).",
+      },
+      9: {
+        q: "Origem dos povos 🌍",
+        a: "Sem, Cam e Jafé são apresentados em Gênesis como ancestrais de diferentes povos do mundo antigo.",
+      },
+      10: {
+        q: "Mapa das nações 🗺️",
+        a: "Gênesis 10 organiza diversos povos antigos a partir dos descendentes de Noé, muitas vezes chamado de 'Tábua das Nações'.",
+      },
+      11: {
+        q: "Torre de Babel 🗼",
+        a: "'Babel' é associada ao hebraico 'balal' (confundir). Em acádio (Bab-ili) significa 'porta dos deuses', o oposto do sentido bíblico.",
+      },
+      12: {
+        q: "O Chamado 🏕️",
+        a: "Abrão tinha 75 anos de idade quando Deus o chamou para sair da próspera cidade de Harã (Gn 12:4).",
+      },
+      13: {
+        q: "Como o Jardim 🌴",
+        a: "Ló escolheu a planície do Jordão porque era muito bem regada, descrita 'como o jardim do Senhor' antes da destruição de Sodoma.",
+      },
+      14: {
+        q: "O primeiro dízimo 💰",
+        a: "Abrão entregou a Melquisedeque, rei de Salém (antiga Jerusalém), o dízimo de tudo o que havia recuperado na guerra.",
+      },
+      15: {
+        q: "Contando estrelas ✨",
+        a: "Deus usa as estrelas do céu para ilustrar visualmente a Abrão como seria a sua descendência (Gn 15:5).",
+      },
+      16: {
+        q: "O Anjo do Senhor 👼",
+        a: "Foi para Hagar, uma serva fugitiva no deserto, que a expressão 'Anjo do Senhor' apareceu pela primeira vez na Bíblia.",
+      },
+      17: {
+        q: "Mudança de Nomes ✍️",
+        a: "Aos 99 anos, Abrão ('pai exaltado') vira Abraão ('pai de multidões') e Sarai vira Sara ('princesa').",
+      },
+      18: {
+        q: "Hospitalidade Antiga ⛺",
+        a: "Abraão recebe três visitantes oferecendo água para os pés, pão, coalhada, leite e um novilho—o ápice da hospitalidade no Oriente Médio.",
+      },
+      19: {
+        q: "Estátua de Sal 🧂",
+        a: "A região do Mar Morto (perto de Sodoma) possui até hoje grandes formações de sal que lembram figuras humanas.",
+      },
+      20: {
+        q: "Meia-irmã 🤫",
+        a: "Abraão mentiu que Sara era apenas sua irmã, mas tecnicamente era meia-verdade: ela era filha de seu pai, mas não de sua mãe (Gn 20:12).",
+      },
+      21: {
+        q: "O Riso de Sara 😂",
+        a: "O nome Isaque (Yitzhak) significa literalmente 'ele ri', lembrando o riso de incredulidade e depois de alegria de Sara.",
+      },
+      22: {
+        q: "O Monte Moriá ⛰️",
+        a: "O monte onde Abraão foi provado é tradicionalmente o mesmo local onde o Templo de Salomão seria construído séculos depois.",
+      },
+      23: {
+        q: "A Primeira Compra 📜",
+        a: "A caverna de Macpela (comprada por 400 siclos de prata) foi a única porção de terra que Abraão possuiu legalmente em Canaã.",
+      },
+      24: {
+        q: "Dez Camelos 🐪",
+        a: "O servo de Abraão levou 10 camelos. Naquela época, camelos eram raros e domesticá-los era sinal de extrema riqueza e prestígio.",
+      },
+      25: {
+        q: "Gêmeos Rivais 👬",
+        a: "Esaú nasceu ruivo e peludo; Jacó nasceu logo depois, agarrado ao calcanhar do irmão (Gn 25:25-26).",
+      },
+      26: {
+        q: "Os Poços de Isaque 💧",
+        a: "No mundo antigo, cavar poços era uma forma de reivindicar posse da terra. Os filisteus os entulharam para expulsar Isaque.",
+      },
+      27: {
+        q: "A Bênção Roubada 🍲",
+        a: "Jacó usou pele de cabrito nas mãos e no pescoço para enganar Isaque, simulando os pelos de seu irmão Esaú.",
+      },
+      28: {
+        q: "A Escada de Jacó 🪜",
+        a: "Jacó sonha com uma escada/rampa (zigurate) que ligava a terra ao céu. Ele chamou o lugar de Betel ('Casa de Deus').",
+      },
+      29: {
+        q: "14 Anos de Trabalho 💍",
+        a: "Jacó trabalhou 7 anos por Raquel, foi enganado com Lia, e aceitou trabalhar mais 7 anos pela mulher que amava.",
+      },
+      30: {
+        q: "As Mandrágoras 🌱",
+        a: "Rúben encontrou mandrágoras. No mundo antigo, a raiz dessa planta era considerada um poderoso estimulante de fertilidade.",
+      },
+      31: {
+        q: "Ídolos Roubados 🏺",
+        a: "Raquel roubou os 'terafins' do pai (ídolos do lar). No antigo Oriente Médio, possuir esses ídolos muitas vezes garantia o direito à herança.",
+      },
+      32: {
+        q: "Luta até o Amanhecer 🤼",
+        a: "Jacó lutou com Deus e teve seu nome mudado para Israel ('Aquele que luta com Deus'). Sua coxa foi deslocada na batalha.",
+      },
+      33: {
+        q: "O Reencontro ❤️",
+        a: "Esaú, que antes queria matar Jacó, corre para encontrá-lo, o abraça e chora, demonstrando perdão 20 anos depois.",
+      },
+      34: {
+        q: "A Vingança de Diná ⚔️",
+        a: "Simeão e Levi destruíram Siquém para vingar sua irmã. Jacó mais tarde os condenaria por essa violência (Gn 49:5-7).",
+      },
+      35: {
+        q: "A Morte de Raquel 🪦",
+        a: "Raquel morre ao dar à luz seu segundo filho. Ela o chamou Benoni ('Filho da minha dor'), mas Jacó mudou para Benjamim ('Filho da mão direita').",
+      },
+      36: {
+        q: "Edom 🏜️",
+        a: "Este capítulo foca na genealogia de Esaú. A palavra Edom está ligada à cor 'vermelha' (seu cabelo e o ensopado que comeu).",
+      },
+      37: {
+        q: "A Túnica Colorida 🧥",
+        a: "A 'túnica de várias cores' de José provavelmente era uma túnica longa, até os punhos e calcanhares, indicando que ele não fazia trabalho pesado.",
+      },
+      38: {
+        q: "Selo, Cordão e Cajado 💍",
+        a: "O selo cilíndrico e o cajado que Tamar tomou de Judá como penhor serviam como a 'identidade' ou 'assinatura' de um homem no mundo antigo.",
+      },
+      39: {
+        q: "Sucesso na Escravidão 🇪🇬",
+        a: "Apesar de ser vendido como escravo, a Bíblia diz que 'o Senhor estava com José', fazendo-o prosperar na casa de Potifar.",
+      },
+      40: {
+        q: "O Padeiro e o Copeiro 🍷",
+        a: "No antigo Egito, o copeiro-mor (que provava o vinho) e o padeiro-mor (que fazia o pão) eram cargos de alta confiança para evitar envenenamento do Faraó.",
+      },
+      41: {
+        q: "O Governador Jovem 🌾",
+        a: "José tinha exatamente 30 anos quando foi tirado da prisão para interpretar o sonho das vacas e se tornar governador de todo o Egito.",
+      },
+      42: {
+        q: "Trigo no Egito 🌾",
+        a: "O Egito era o 'celeiro do mundo antigo' devido às inundações previsíveis e ricas em nutrientes do rio Nilo.",
+      },
+      43: {
+        q: "Porção de Benjamim 🎒",
+        a: "No banquete, José deu a Benjamim (seu único irmão por parte de pai e mãe) porções de comida 5 vezes maiores que as dos outros irmãos.",
+      },
+      44: {
+        q: "A Taça de Prata 🏆",
+        a: "José ordenou que escondessem sua taça na sacola de Benjamim para testar se seus irmãos o abandonariam, como haviam feito com ele anos antes.",
+      },
+      45: {
+        q: "A Revelação 😭",
+        a: "José chorou tão alto ao se revelar para os irmãos que os egípcios do lado de fora da sala o ouviram.",
+      },
+      46: {
+        q: "Setenta Pessoas 🐪",
+        a: "A família inteira de Jacó que desceu para o Egito contabilizava 70 pessoas, número que simboliza totalidade na cultura hebraica.",
+      },
+      47: {
+        q: "A Terra de Gósen 🏞️",
+        a: "Os hebreus foram assentados em Gósen, a parte mais fértil do delta do Nilo, excelente para gado (já que pastores eram detestados pelos egípcios).",
+      },
+      48: {
+        q: "A Bênção Cruzada 🤲",
+        a: "Jacó cruzou os braços de propósito para dar a bênção principal da mão direita ao caçula Efraim, em vez do primogênito Manassés.",
+      },
+      49: {
+        q: "O Leão de Judá 🦁",
+        a: "Jacó profetiza que o 'cetro não se arredará de Judá', indicando que desta tribo viriam os reis de Israel (e futuramente, Jesus).",
+      },
+      50: {
+        q: "Idade Ideal ⚰️",
+        a: "José morre aos 110 anos, idade considerada o ideal absoluto de vida plena e abençoada na cultura egípcia antiga (Gn 50:26).",
+      },
+    };
 
-    const bank = [
-      {
-        q: "Quantos dias de criação aparecem em Gênesis 1?",
-        a: "Seis dias, com descanso no sétimo (Gênesis 2:1–3).",
-      },
-      {
-        q: "De qual ribeiro Deus formou o homem, no jardim do Éden?",
-        a: "Do pó da terra; soprou em seus narizes o fôlego da vida (Gênesis 2:7).",
-      },
-      {
-        q: "Qual fruto Eva comeu primeiro, segundo o texto de Gênesis?",
-        a: "O texto não cita a fruta; só diz que era do fruto da árvore proibida no meio do jardim (Gênesis 3:6).",
-      },
-      {
-        q: "De quem é a linhagem registrada em Gênesis 5?",
-        a: "De Adão a Noé, passando por Sete, Enos, Cainã, Maalaleel, Jerede, Enoque, Matusalém, Lameque e Noé.",
-      },
-      {
-        q: "Por que Deus decidiu destruir a terra com dilúvio (Gênesis 6)?",
-        a: "Porque a maldade do homem se multiplicara e toda imaginação dos pensamentos de seu coração era má continuamente.",
-      },
-    ];
-    const pick = bank[chapter % bank.length];
+    // Caso de uso: Se o número for maior que 50 ou menor que 1, usa o padrão cíclico com os mesmos dados acima, mas Gênesis tem só 50.
+    const pick = chapterBank[chapter] || {
+      q: `Curiosidade Gênesis ${chapter} 📖`,
+      a: `O livro de Gênesis é o alicerce de toda a Bíblia, cobrindo milhares de anos de história antiga.`,
+    };
+
     return {
       chapterId: contentId,
       question: pick.q,
