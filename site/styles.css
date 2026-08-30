@@ -270,7 +270,7 @@ body {
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
-  bottom: 0;
+  bottom: 65px;
   z-index: 70;
   width: min(720px, calc(100vw - 24px));
   max-width: 720px;
@@ -375,7 +375,7 @@ body {
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
-  bottom: 0;
+  bottom: 65px;
   z-index: 70;
   width: min(560px, calc(100vw - 24px));
   max-width: 560px;
@@ -745,7 +745,7 @@ body {
 
 .saved-counter {
   position: fixed;
-  bottom: 32px;
+  bottom: 100px;
   right: 24px;
   z-index: 40;
   display: inline-flex;
@@ -792,7 +792,7 @@ body {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 40px;
+  bottom: 110px;
   z-index: 60;
   transform: translate(-50%, 16px);
   opacity: 0;
@@ -2127,8 +2127,14 @@ textarea::placeholder {
   animation: tg-share-up 0.22s ease-out;
 }
 @keyframes tg-share-up {
-  from { transform: translateY(18px); opacity: 0.7; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(18px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 .tg-share-handle {
   width: 36px;
