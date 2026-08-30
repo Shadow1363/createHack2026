@@ -52,19 +52,29 @@ body {
 }
 
 .marker {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
   position: fixed;
   top: 22px;
   left: 24px;
   z-index: 40;
+  text-align: left;
   font-family: "Inter", sans-serif;
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--parchment-dim);
+  cursor: pointer;
   transition: opacity 0.3s ease;
 }
 .marker span {
   color: var(--gold);
+}
+.marker:focus-visible {
+  outline: 2px solid rgba(201, 161, 90, 0.5);
+  outline-offset: 4px;
 }
 
 .hint {
@@ -983,30 +993,6 @@ textarea::placeholder {
 .sentinel {
   height: 1px;
 }
-
-.jump-btn {
-  /* display: none; */
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 30;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(17, 24, 39, 0.12);
-  color: #111827;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--ui);
-  cursor: pointer;
-  backdrop-filter: blur(6px);
-  box-shadow:
-    0 1px 2px rgba(17, 24, 39, 0.06),
-    0 6px 18px -8px rgba(17, 24, 39, 0.25);
-}
-.jump-btn:hover {
-  background: #fff;
-}
 .jump-backdrop {
   position: fixed;
   inset: 0;
@@ -1125,12 +1111,6 @@ textarea::placeholder {
 }
 
 @media (max-width: 540px) {
-  .jump-btn {
-    top: 10px;
-    right: 10px;
-    font-size: 12px;
-    padding: 7px 12px;
-  }
   .jump-grid {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }

@@ -2352,8 +2352,10 @@ function openJumpPanel() {
   if (!jumpPanelInited) return;
   const panel = document.getElementById("jumpPanel");
   const backdrop = document.getElementById("jumpBackdrop");
+  const markerBtn = document.getElementById("marker");
   backdrop.hidden = false;
   panel.hidden = false;
+  if (markerBtn) markerBtn.setAttribute("aria-expanded", "true");
   refreshJumpPanelCurrentMarker();
   const saved = ResumeStorage.load();
   const foot = document.getElementById("jumpFromStorage");
@@ -2370,8 +2372,10 @@ function openJumpPanel() {
 function closeJumpPanel() {
   const panel = document.getElementById("jumpPanel");
   const backdrop = document.getElementById("jumpBackdrop");
+  const markerBtn = document.getElementById("marker");
   backdrop.hidden = true;
   panel.hidden = true;
+  if (markerBtn) markerBtn.setAttribute("aria-expanded", "false");
 }
 
 function refreshJumpPanelCurrentMarker() {
@@ -2391,6 +2395,7 @@ function initJumpPanelUI() {
   jumpPanelInited = true;
 
   const grid = document.getElementById("jumpGrid");
+  const markerBtn = document.getElementById("marker");
   for (let ch = 1; ch <= READING_PLAN.length; ch++) {
     const cell = document.createElement("button");
     cell.className = "jump-cell";
@@ -2400,7 +2405,7 @@ function initJumpPanelUI() {
     grid.appendChild(cell);
   }
 
-  document.getElementById("jumpBtn").addEventListener("click", openJumpPanel);
+  markerBtn.addEventListener("click", openJumpPanel);
   document
     .getElementById("jumpClose")
     .addEventListener("click", closeJumpPanel);
@@ -2888,9 +2893,6 @@ focusBtn.addEventListener("click", async () => {
     }
 
     if (audioCtx && audioCtx.state === "suspended") await audioCtx.resume();
-
-    const jumpBtn = document.getElementsByClassName("jump-btn")[0];
-    jumpBtn.style.display = "none";
     showToast("Modo foco ativado — som suave ligado");
   } else {
     fadeAudio(soakingAudio, 0);
@@ -2901,8 +2903,6 @@ focusBtn.addEventListener("click", async () => {
       rain.gain.gain.setValueAtTime(rain.gain.gain.value, audioCtx.currentTime);
       rain.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.9);
     }
-    const jumpBtn = document.getElementsByClassName("jump-btn")[0];
-    jumpBtn.style.display = "block";
     showToast("Modo foco desativado");
   }
 });

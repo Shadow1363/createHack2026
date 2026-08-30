@@ -10,9 +10,16 @@
     <div class="progress">
       <div class="progress-fill" id="progressFill"></div>
     </div>
-    <div class="marker" id="marker">
+    <button
+      class="marker"
+      id="marker"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls="jumpPanel"
+      aria-expanded="false"
+    >
       Gênesis · <span id="markerRef">—</span>
-    </div>
+    </button>
     <div class="hint" id="scrollHint">Role <span class="arrow">↓</span></div>
 
     <button class="focus-btn" id="focusBtn" type="button" aria-pressed="false">
@@ -20,15 +27,6 @@
       <span id="focusLabel">Modo foco</span>
     </button>
 
-    <button
-      class="jump-btn"
-      id="jumpBtn"
-      type="button"
-      aria-haspopup="dialog"
-      aria-controls="jumpPanel"
-    >
-      Ir para capítulo
-    </button>
     <div
       class="jump-panel"
       id="jumpPanel"
