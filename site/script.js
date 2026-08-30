@@ -993,8 +993,8 @@ const savedSet = new Set();
 let hintTaught = false;
 
 const savedCounter = document.createElement("div");
-savedCounter.className = "saved-counter";
-savedCounter.innerHTML = `<span class="cbookmark" styles="display: block;"></span>`;
+savedCounter.className = "saved-counter show"; // <-- "show" is required
+savedCounter.innerHTML = `<span class="save-badgs saved pop" aria-hidden="true"></span>`;
 savedCounter.setAttribute("role", "button");
 savedCounter.setAttribute("tabindex", "0");
 savedCounter.setAttribute("aria-label", "Abrir versículos salvos");
@@ -1014,6 +1014,11 @@ aiSheetBackdrop.className = "ai-sheet-backdrop";
 aiSheetBackdrop.setAttribute("aria-hidden", "true");
 document.body.appendChild(aiSheetBackdrop);
 
+const savedSheetBackdrop = document.createElement("div");
+savedSheetBackdrop.className = "saved-sheet-backdrop";
+savedSheetBackdrop.setAttribute("aria-hidden", "true");
+document.body.appendChild(savedSheetBackdrop);
+
 const aiSheet = document.createElement("section");
 aiSheet.className = "ai-sheet";
 aiSheet.setAttribute("role", "dialog");
@@ -1021,6 +1026,14 @@ aiSheet.setAttribute("aria-modal", "true");
 aiSheet.setAttribute("aria-hidden", "true");
 aiSheet.setAttribute("aria-label", "Explicação do versículo");
 document.body.appendChild(aiSheet);
+
+const savedSheet = document.createElement("section");
+savedSheet.className = "saved-sheet";
+savedSheet.setAttribute("role", "dialog");
+savedSheet.setAttribute("aria-modal", "true");
+savedSheet.setAttribute("aria-hidden", "true");
+savedSheet.setAttribute("aria-label", "Versículos salvos");
+document.body.appendChild(savedSheet);
 
 let toastTimer = null;
 let pendingReaderDeepLink = parseReaderDeepLink();
@@ -1032,21 +1045,13 @@ function showToast(message) {
 }
 
 function updateSavedCounter() {
-  document.getElementById("savedCount").textContent = savedSet.size;
+  savedSheetState.listCache = null;
   savedCounter.classList.toggle("show", savedSet.size > 0);
+  savedCounter.setAttribute(
+    "aria-label",
+    savedSet.size > 0 ? "Abrir versículos salvos" : "Nenhum versículo salvo",
+  );
 }
-
-function openSavedVersesPage() {
-  const target = new URL("./saved.html", window.location.href);
-  window.open(target.toString(), "_blank", "noopener");
-}
-
-savedCounter.addEventListener("click", openSavedVersesPage);
-savedCounter.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" && e.key !== " ") return;
-  e.preventDefault();
-  openSavedVersesPage();
-});
 
 function hideAllHints() {
   hintTaught = true;
@@ -1063,6 +1068,7 @@ const AI_QUESTION_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" hei
 const AI_REPLY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-reply-icon lucide-message-circle-reply"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="m10 15-3-3 3-3"/><path d="M7 12h8a2 2 0 0 1 2 2v1"/></svg>`;
 const AI_REWORD_CACHE = new Map();
 const AI_SHEET_PEEK = 272;
+const SAVED_SHEET_PEEK = 332;
 const aiSheetState = {
   activeButton: null,
   activeKey: "",
@@ -1073,6 +1079,17 @@ const aiSheetState = {
   currentOffset: 0,
   startY: 0,
   startOffset: 0,
+};
+const savedSheetState = {
+  requestId: 0,
+  open: false,
+  dragging: false,
+  collapsedOffset: 0,
+  currentOffset: 0,
+  startY: 0,
+  startOffset: 0,
+  listCache: null,
+  chapterCache: new Map(),
 };
 
 aiSheet.innerHTML = `
@@ -1087,6 +1104,22 @@ aiSheet.innerHTML = `
     <p class="ai-sheet-ref"></p>
     <p class="ai-sheet-original"></p>
     <div class="ai-sheet-copy is-loading">Preparando uma explicação mais clara…</div>
+  </div>
+`;
+
+savedSheet.innerHTML = `
+  <div class="saved-sheet-dragger" aria-hidden="true">
+    <span class="saved-sheet-grip"></span>
+  </div>
+  <div class="saved-sheet-head">
+    <div class="saved-sheet-title-wrap">
+      <p class="saved-sheet-kicker">Seus salvos</p>
+      <h2 class="saved-sheet-title">Versículos salvos</h2>
+    </div>
+    <button class="saved-sheet-close" type="button" aria-label="Fechar salvos" title="Fechar salvos">${AI_REPLY_ICON}</button>
+  </div>
+  <div class="saved-sheet-body">
+    <div class="saved-sheet-list is-loading">Carregando seus versículos salvos…</div>
   </div>
 `;
 
@@ -1418,6 +1451,287 @@ window.addEventListener("resize", () => {
   const nextOffset =
     aiSheetState.currentOffset <= collapsedOffset / 2 ? 0 : collapsedOffset;
   applyAiSheetOffset(nextOffset, true);
+});
+
+function parseSavedPassageId(passageId) {
+  const match = /^GEN\.(\d+)\.(\d+)$/i.exec(String(passageId || ""));
+  if (!match) return null;
+  return {
+    chapter: parseInt(match[1], 10),
+    verse: parseInt(match[2], 10),
+    passageId,
+  };
+}
+
+function getSavedSheetListEl() {
+  return savedSheet.querySelector(".saved-sheet-list");
+}
+
+function setSavedSheetStateText(text, stateClass) {
+  const listEl = getSavedSheetListEl();
+  listEl.replaceChildren();
+  listEl.className = stateClass
+    ? `saved-sheet-list ${stateClass}`
+    : "saved-sheet-list";
+  listEl.textContent = text;
+}
+
+async function getSavedSheetChapter(chapter) {
+  if (savedSheetState.chapterCache.has(chapter)) {
+    return savedSheetState.chapterCache.get(chapter);
+  }
+  const promise = BibleSource.getChapter(`GEN.${chapter}`);
+  savedSheetState.chapterCache.set(chapter, promise);
+  return promise;
+}
+
+async function loadSavedSheetItems() {
+  if (savedSheetState.listCache) return savedSheetState.listCache;
+  const parsed = HighlightsMirror.read()
+    .highlights.map((item) => parseSavedPassageId(item.passage_id))
+    .filter(Boolean);
+  if (!parsed.length) {
+    savedSheetState.listCache = [];
+    return [];
+  }
+
+  const chapters = [...new Set(parsed.map((item) => item.chapter))];
+  const chapterVerseMap = new Map();
+  await Promise.all(
+    chapters.map(async (chapter) => {
+      try {
+        const chapterData = await getSavedSheetChapter(chapter);
+        chapterVerseMap.set(chapter, chapterData.verses || []);
+      } catch (_) {
+        chapterVerseMap.set(chapter, []);
+      }
+    }),
+  );
+
+  const items = parsed
+    .map((item) => {
+      const verses = chapterVerseMap.get(item.chapter) || [];
+      const found = verses.find((verse) => verse.number === item.verse);
+      return {
+        ...item,
+        ref: `Gênesis ${item.chapter}:${item.verse}`,
+        text: found ? found.text : "Abrir versículo no leitor",
+      };
+    })
+    .sort((a, b) => a.chapter - b.chapter || a.verse - b.verse);
+
+  savedSheetState.listCache = items;
+  return items;
+}
+
+function openSavedPassage(item) {
+  pendingReaderDeepLink = {
+    chapterIndex: item.chapter - 1,
+    verseNumber: item.verse,
+    passageId: item.passageId,
+  };
+  closeSavedSheet();
+  jumpToGenesisChapter(item.chapter);
+}
+
+function renderSavedSheetList(items) {
+  const listEl = getSavedSheetListEl();
+  listEl.replaceChildren();
+  listEl.className = "saved-sheet-list";
+
+  if (!items.length) {
+    listEl.classList.add("is-empty");
+    listEl.textContent = "Salve algum versículo no leitor e ele aparece aqui.";
+    return;
+  }
+
+  const grouped = new Map();
+  items.forEach((item) => {
+    const arr = grouped.get(item.chapter) || [];
+    arr.push(item);
+    grouped.set(item.chapter, arr);
+  });
+
+  Array.from(grouped.entries()).forEach(([chapter, chapterItems]) => {
+    const group = document.createElement("section");
+    group.className = "saved-sheet-group";
+
+    const heading = document.createElement("h3");
+    heading.className = "saved-sheet-group-title";
+    heading.textContent = `Gênesis ${chapter}`;
+    group.appendChild(heading);
+
+    const stack = document.createElement("div");
+    stack.className = "saved-sheet-group-list";
+    chapterItems.forEach((item) => {
+      const btn = document.createElement("button");
+      btn.className = "saved-sheet-item";
+      btn.type = "button";
+      btn.addEventListener("click", () => openSavedPassage(item));
+
+      const ref = document.createElement("span");
+      ref.className = "saved-sheet-item-ref";
+      ref.textContent = item.ref;
+
+      const text = document.createElement("span");
+      text.className = "saved-sheet-item-text";
+      text.textContent = item.text;
+
+      btn.appendChild(ref);
+      btn.appendChild(text);
+      stack.appendChild(btn);
+    });
+
+    group.appendChild(stack);
+    listEl.appendChild(group);
+  });
+}
+
+function getSavedSheetClosedOffset() {
+  return savedSheet.offsetHeight + 28;
+}
+
+function getSavedSheetCollapsedOffset() {
+  const height = savedSheet.offsetHeight || 0;
+  const visible = Math.min(
+    Math.max(window.innerHeight * 0.42, 260),
+    SAVED_SHEET_PEEK,
+  );
+  return Math.max(height - visible, 0);
+}
+
+function applySavedSheetOffset(offset, immediate) {
+  savedSheetState.currentOffset = Math.max(0, offset);
+  savedSheet.style.transition =
+    immediate || savedSheetState.dragging ? "none" : "";
+  savedSheet.style.transform = `translateY(${savedSheetState.currentOffset}px)`;
+}
+
+function closeSavedSheet() {
+  savedSheetState.requestId += 1;
+  savedSheetState.open = false;
+  savedSheetState.dragging = false;
+  savedSheet.classList.remove("show", "is-dragging");
+  savedSheetBackdrop.classList.remove("show");
+  savedSheet.setAttribute("aria-hidden", "true");
+  applySavedSheetOffset(getSavedSheetClosedOffset(), true);
+}
+
+async function openSavedSheet() {
+  if (savedSheetState.open) {
+    closeSavedSheet();
+    return;
+  }
+  if (aiSheetState.open) closeAiSheet();
+
+  const requestId = savedSheetState.requestId + 1;
+  savedSheetState.requestId = requestId;
+  savedSheetState.open = true;
+  savedSheetState.dragging = false;
+  savedSheet.classList.add("show");
+  savedSheetBackdrop.classList.add("show");
+  savedSheet.setAttribute("aria-hidden", "false");
+  setSavedSheetStateText("Carregando seus versículos salvos…", "is-loading");
+  requestAnimationFrame(() => {
+    savedSheetState.collapsedOffset = getSavedSheetCollapsedOffset();
+    applySavedSheetOffset(
+      savedSheetState.collapsedOffset,
+      prefersReducedMotion(),
+    );
+  });
+
+  try {
+    const items = await loadSavedSheetItems();
+    if (savedSheetState.requestId !== requestId) return;
+    renderSavedSheetList(items);
+    requestAnimationFrame(() => {
+      if (!savedSheetState.open || savedSheetState.dragging) return;
+      savedSheetState.collapsedOffset = getSavedSheetCollapsedOffset();
+      applySavedSheetOffset(savedSheetState.collapsedOffset, true);
+    });
+  } catch (_) {
+    if (savedSheetState.requestId !== requestId) return;
+    setSavedSheetStateText(
+      "Não foi possível carregar seus versículos salvos agora.",
+      "is-empty",
+    );
+    requestAnimationFrame(() => {
+      if (!savedSheetState.open || savedSheetState.dragging) return;
+      savedSheetState.collapsedOffset = getSavedSheetCollapsedOffset();
+      applySavedSheetOffset(savedSheetState.collapsedOffset, true);
+    });
+  }
+}
+
+function snapSavedSheet(offset) {
+  const collapsedOffset = getSavedSheetCollapsedOffset();
+  savedSheetState.collapsedOffset = collapsedOffset;
+  if (offset > collapsedOffset + 96) {
+    closeSavedSheet();
+    return;
+  }
+  const nextOffset =
+    Math.abs(offset) < Math.abs(offset - collapsedOffset) ? 0 : collapsedOffset;
+  applySavedSheetOffset(nextOffset, prefersReducedMotion());
+}
+
+function beginSavedSheetDrag(e) {
+  if (!savedSheetState.open) return;
+  savedSheetState.dragging = true;
+  savedSheetState.startY = e.clientY;
+  savedSheetState.startOffset = savedSheetState.currentOffset;
+  savedSheet.classList.add("is-dragging");
+  savedSheet.setPointerCapture(e.pointerId);
+}
+
+function moveSavedSheetDrag(e) {
+  if (!savedSheetState.dragging) return;
+  const nextOffset = Math.max(
+    0,
+    Math.min(
+      getSavedSheetClosedOffset(),
+      savedSheetState.startOffset + (e.clientY - savedSheetState.startY),
+    ),
+  );
+  applySavedSheetOffset(nextOffset, true);
+}
+
+function endSavedSheetDrag(e) {
+  if (!savedSheetState.dragging) return;
+  savedSheetState.dragging = false;
+  savedSheet.classList.remove("is-dragging");
+  if (savedSheet.hasPointerCapture(e.pointerId)) {
+    savedSheet.releasePointerCapture(e.pointerId);
+  }
+  snapSavedSheet(savedSheetState.currentOffset);
+}
+
+savedCounter.addEventListener("click", openSavedSheet);
+savedCounter.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  openSavedSheet();
+});
+savedSheetBackdrop.addEventListener("click", closeSavedSheet);
+savedSheet
+  .querySelector(".saved-sheet-close")
+  .addEventListener("click", closeSavedSheet);
+savedSheet
+  .querySelector(".saved-sheet-dragger")
+  .addEventListener("pointerdown", beginSavedSheetDrag);
+savedSheet.addEventListener("pointermove", moveSavedSheetDrag);
+savedSheet.addEventListener("pointerup", endSavedSheetDrag);
+savedSheet.addEventListener("pointercancel", endSavedSheetDrag);
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && savedSheetState.open) closeSavedSheet();
+});
+window.addEventListener("resize", () => {
+  if (!savedSheetState.open || savedSheetState.dragging) return;
+  const collapsedOffset = getSavedSheetCollapsedOffset();
+  savedSheetState.collapsedOffset = collapsedOffset;
+  const nextOffset =
+    savedSheetState.currentOffset <= collapsedOffset / 2 ? 0 : collapsedOffset;
+  applySavedSheetOffset(nextOffset, true);
 });
 
 /* =========================================================================
