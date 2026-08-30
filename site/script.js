@@ -68,7 +68,10 @@ function consumePendingTogetherInvite() {
   const id = takeTogetherInvite();
   if (!id) return;
   const tryOpen = () => {
-    if (window.Together && typeof window.Together.openInviteLink === "function") {
+    if (
+      window.Together &&
+      typeof window.Together.openInviteLink === "function"
+    ) {
       window.Together.openInviteLink(id);
       return true;
     }
@@ -2752,12 +2755,11 @@ function buildCommentsSection(commentsArray) {
 function buildTriviaSection(trivia) {
   const sec = document.createElement("div");
   sec.className = "section fact-section";
-  sec.setAttribute("data-ref", "Pergunta do capítulo");
+  sec.setAttribute("data-ref", "Curiosidade");
   sec.innerHTML = `
-      <p class="eyebrow">Pergunta — meio do capítulo</p>
       <p class="quiz-q" style="margin-bottom: 26px;">${trivia.question}</p>
       <button class="btn-primary" id="revealTrivia" type="button" style="margin-bottom: 28px;">
-        Revelar resposta
+        Revelar
       </button>
       <p class="fact-body" id="triviaAnswer" style="opacity:0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease;">
         ${trivia.answer}
@@ -3579,7 +3581,9 @@ function initReaderAndHooks() {
   };
   if (!tryInitTogether()) {
     setTimeout(tryInitTogether, 0);
-    document.addEventListener("DOMContentLoaded", tryInitTogether, { once: true });
+    document.addEventListener("DOMContentLoaded", tryInitTogether, {
+      once: true,
+    });
     window.addEventListener("load", tryInitTogether, { once: true });
   }
 
