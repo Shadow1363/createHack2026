@@ -2620,30 +2620,6 @@ let audioCtx = null,
   focusOn = false,
   modInterval = null;
 
-function buildRainNoise(ctx) {
-  const bufferSize = 2 * ctx.sampleRate;
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  let lastOut = 0;
-  for (let i = 0; i < bufferSize; i++) {
-    const white = Math.random() * 2 - 1;
-    data[i] = (lastOut + 0.02 * white) / 1.02;
-    lastOut = data[i];
-    data[i] *= 3.2;
-  }
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 900;
-  const gain = ctx.createGain();
-  gain.gain.value = 0;
-  source.connect(filter).connect(gain).connect(ctx.destination);
-  source.start(0);
-  return { source, filter, gain };
-}
-
 function startModulation() {
   clearInterval(modInterval);
   modInterval = setInterval(() => {
@@ -2659,6 +2635,20 @@ function startModulation() {
 
 const focusBtn = document.getElementById("focusBtn");
 const focusLabel = document.getElementById("focusLabel");
+const soakingAudio = new Audio("soaking.mp3");
+soakingAudio.loop = true;
+soakingAudio.volume = 0; // começa em 0 pra fazer fade-in
+
+function fadeAudio(el, target, duration = 900) {
+  const start = el.volume;
+  const startTime = performance.now();
+  function step(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    el.volume = start + (target - start) * t;
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
 focusBtn.addEventListener("click", async () => {
   focusOn = !focusOn;
@@ -2668,19 +2658,22 @@ focusBtn.addEventListener("click", async () => {
   focusLabel.textContent = focusOn ? "Foco ativo" : "Modo foco";
 
   if (focusOn) {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      rain = buildRainNoise(audioCtx);
-      startModulation();
+    try {
+      await soakingAudio.play();
+      fadeAudio(soakingAudio, 1);
+    } catch (err) {
+      console.warn("Não consegui tocar o áudio:", err);
     }
-    if (audioCtx.state === "suspended") await audioCtx.resume();
-    rain.gain.gain.cancelScheduledValues(audioCtx.currentTime);
-    rain.gain.gain.setValueAtTime(rain.gain.gain.value, audioCtx.currentTime);
-    rain.gain.gain.linearRampToValueAtTime(0.16, audioCtx.currentTime + 1.4);
+
+    if (audioCtx && audioCtx.state === "suspended") await audioCtx.resume();
+
     const jumpBtn = document.getElementsByClassName("jump-btn")[0];
     jumpBtn.style.display = "none";
     showToast("Modo foco ativado — som suave ligado");
   } else {
+    fadeAudio(soakingAudio, 0);
+    setTimeout(() => soakingAudio.pause(), 950);
+
     if (rain) {
       rain.gain.gain.cancelScheduledValues(audioCtx.currentTime);
       rain.gain.gain.setValueAtTime(rain.gain.gain.value, audioCtx.currentTime);
