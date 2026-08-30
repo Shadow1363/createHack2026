@@ -44,13 +44,17 @@ function togetherTimeAgo(iso) {
 }
 
 const GENESIS_VERSE_COUNTS = [
-  31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38, 18,
-  34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43, 36, 30, 23, 23,
-  57, 38, 34, 34, 28, 34, 31, 22, 33, 26,
+  31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38,
+  18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43, 36, 30,
+  23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26,
 ];
 
 function togetherVerseCount(bookUsfm, chapter) {
-  if (bookUsfm === "GEN" && chapter >= 1 && chapter <= GENESIS_VERSE_COUNTS.length) {
+  if (
+    bookUsfm === "GEN" &&
+    chapter >= 1 &&
+    chapter <= GENESIS_VERSE_COUNTS.length
+  ) {
     return GENESIS_VERSE_COUNTS[chapter - 1];
   }
   return 12;
@@ -143,7 +147,13 @@ function shareTogetherInvite(inviteUrl, title) {
 }
 
 const Together = {
-  _state: { view: "list", draft: {}, unsubscribe: null, currentUserId: null, invitePoll: null },
+  _state: {
+    view: "list",
+    draft: {},
+    unsubscribe: null,
+    currentUserId: null,
+    invitePoll: null,
+  },
 
   init() {
     if (this._wired) return;
@@ -171,7 +181,8 @@ const Together = {
     if (!this._wired) this.init();
     const tabbar = this.tabbar || document.getElementById("tabbar");
     const viewRead = this.viewRead || document.getElementById("scroller");
-    const viewTogether = this.viewTogether || document.getElementById("togetherView");
+    const viewTogether =
+      this.viewTogether || document.getElementById("togetherView");
     const viewYou = this.viewYou || document.getElementById("youView");
     if (!tabbar || !viewTogether || !viewYou) return;
 
@@ -250,7 +261,9 @@ const Together = {
         return;
       }
       list.innerHTML = "";
-      sessions.forEach((session) => list.appendChild(this._sessionCard(session, me.id)));
+      sessions.forEach((session) =>
+        list.appendChild(this._sessionCard(session, me.id)),
+      );
     } catch (e) {
       console.error(e);
       root.querySelector("#tgSessionList").innerHTML =
@@ -336,7 +349,9 @@ const Together = {
     `;
     root.appendChild(wrap);
 
-    root.querySelector("#tgBack").addEventListener("click", () => this.renderHome());
+    root
+      .querySelector("#tgBack")
+      .addEventListener("click", () => this.renderHome());
 
     const bookGrid = root.querySelector("#tgBookGrid");
     TOGETHER_BOOKS.forEach((book) => {
@@ -412,12 +427,16 @@ const Together = {
       </div>
     `;
     root.appendChild(wrap);
-    root.querySelector("#tgBack").addEventListener("click", () => this.renderNewSession());
+    root
+      .querySelector("#tgBack")
+      .addEventListener("click", () => this.renderNewSession());
 
     let selectedFriendId = null;
     const confirmBtn = root.querySelector("#tgConfirm");
     const shareBtn = root.querySelector("#tgShareInvite");
-    confirmBtn.addEventListener("click", () => this._createSessionAndOpen(selectedFriendId));
+    confirmBtn.addEventListener("click", () =>
+      this._createSessionAndOpen(selectedFriendId),
+    );
     shareBtn.addEventListener("click", () => this._shareInviteAndOpen());
 
     try {
@@ -443,7 +462,9 @@ const Together = {
           row.type = "button";
           row.addEventListener("click", () => {
             selectedFriendId = friend.id;
-            list.querySelectorAll(".tg-friend-row").forEach((r) => r.classList.remove("is-selected"));
+            list
+              .querySelectorAll(".tg-friend-row")
+              .forEach((r) => r.classList.remove("is-selected"));
             row.classList.add("is-selected");
             confirmBtn.hidden = false;
             confirmBtn.disabled = false;
@@ -470,7 +491,8 @@ const Together = {
     const draft = this._state.draft;
     const book = TOGETHER_BOOKS.find((b) => b.usfm === draft.bookUsfm);
     if (!book || !draft.chapter) return null;
-    const subtitle = book.usfm === "GEN" ? GENESIS_SUBTITLES[draft.chapter - 1] : "";
+    const subtitle =
+      book.usfm === "GEN" ? GENESIS_SUBTITLES[draft.chapter - 1] : "";
     return window.TogetherDB.createSession({
       bookUsfm: book.usfm,
       bookName: book.name,
@@ -565,7 +587,8 @@ const Together = {
     this.switchTab("together", { skipRender: true });
     const root = this.viewTogether || document.getElementById("togetherView");
     if (root) {
-      root.innerHTML = '<div class="tg-loading tg-loading-full">Entrando na leitura…</div>';
+      root.innerHTML =
+        '<div class="tg-loading tg-loading-full">Entrando na leitura…</div>';
     }
     try {
       const session = await window.TogetherDB.joinSession(sessionId);
@@ -589,7 +612,8 @@ const Together = {
       this._state.unsubscribe = null;
     }
     const root = this.viewTogether;
-    root.innerHTML = '<div class="tg-loading tg-loading-full">Carregando leitura…</div>';
+    root.innerHTML =
+      '<div class="tg-loading tg-loading-full">Carregando leitura…</div>';
 
     let session, me, reflections;
     try {
@@ -600,24 +624,35 @@ const Together = {
       ]);
     } catch (e) {
       console.error(e);
-      root.innerHTML = '<p class="tg-empty tg-empty-full">Não foi possível carregar esta leitura.</p>';
+      root.innerHTML =
+        '<p class="tg-empty tg-empty-full">Não foi possível carregar esta leitura.</p>';
       return;
     }
 
     const chapterData = await Promise.race([
-      BibleSource.getChapter(`${session.book_usfm}.${session.chapter}`).catch(() => ({ verses: [] })),
+      BibleSource.getChapter(`${session.book_usfm}.${session.chapter}`).catch(
+        () => ({ verses: [] }),
+      ),
       new Promise((resolve) => setTimeout(() => resolve({ verses: [] }), 2500)),
     ]);
 
     this._renderSessionBody(session, me, chapterData, reflections);
 
-    this._state.unsubscribe = window.TogetherDB.subscribeToSession(sessionId, async () => {
-      const [freshSession, freshReflections] = await Promise.all([
-        window.TogetherDB.getSession(sessionId),
-        window.TogetherDB.listReflections(sessionId),
-      ]);
-      this._renderSessionBody(freshSession, me, chapterData, freshReflections);
-    });
+    this._state.unsubscribe = window.TogetherDB.subscribeToSession(
+      sessionId,
+      async () => {
+        const [freshSession, freshReflections] = await Promise.all([
+          window.TogetherDB.getSession(sessionId),
+          window.TogetherDB.listReflections(sessionId),
+        ]);
+        this._renderSessionBody(
+          freshSession,
+          me,
+          chapterData,
+          freshReflections,
+        );
+      },
+    );
     const waitingForInvitee = !(session.together_participants || []).some(
       (p) => p.user_id !== me.id,
     );
@@ -629,13 +664,21 @@ const Together = {
     const participants = session.together_participants || [];
     const mine = participants.find((p) => p.user_id === me.id);
     const other = participants.find((p) => p.user_id !== me.id);
-    const otherName = other?.profiles?.display_name || (other ? "amigo(a)" : "convidado(a)");
+    const otherName =
+      other?.profiles?.display_name || (other ? "amigo(a)" : "convidado(a)");
     const waiting = !other;
     const total = session.total_verses || chapterData.verses.length || 1;
     const currentVerseNum = Math.max(1, mine?.current_verse || 1);
-    const verse = chapterData.verses.find((v) => v.number === currentVerseNum) ||
-      chapterData.verses[currentVerseNum - 1] || { number: currentVerseNum, text: "" };
-    const verseReflections = reflections.filter((r) => r.verse_number === currentVerseNum);
+    const verse = chapterData.verses.find(
+      (v) => v.number === currentVerseNum,
+    ) ||
+      chapterData.verses[currentVerseNum - 1] || {
+        number: currentVerseNum,
+        text: "",
+      };
+    const verseReflections = reflections.filter(
+      (r) => r.verse_number === currentVerseNum,
+    );
 
     root.innerHTML = "";
     const wrap = togetherEl("div", "tg-scroll tg-session-scroll");
@@ -645,8 +688,12 @@ const Together = {
         <span class="tg-avatar tg-avatar-sm">${togetherInitials(waiting ? "?" : otherName)}</span>
         <h2 class="tg-session-title">${waiting ? session.title : `${session.title} com ${otherName.split(" ")[0]}`}</h2>
       </div>
-      ${waiting ? `<p class="tg-invite-waiting">Aguardando alguém entrar pelo link de convite.</p>
-        <button class="tg-cta tg-cta-session-share" id="tgSessionShare" type="button">Compartilhar</button>` : ""}
+      ${
+        waiting
+          ? `<p class="tg-invite-waiting">Aguardando alguém entrar pelo link de convite.</p>
+        <button class="tg-cta tg-cta-session-share" id="tgSessionShare" type="button">Compartilhar</button>`
+          : ""
+      }
       <div class="tg-progress-rows tg-progress-rows-session">
         ${this._progressRow("Você", mine?.current_verse || 0, total, "gold")}
         ${this._progressRow(otherName.split(" ")[0], other?.current_verse || 0, total, "green")}
@@ -669,7 +716,9 @@ const Together = {
     `;
     root.appendChild(wrap);
 
-    root.querySelector("#tgBack").addEventListener("click", () => this.renderHome());
+    root
+      .querySelector("#tgBack")
+      .addEventListener("click", () => this.renderHome());
     const sessionShareBtn = root.querySelector("#tgSessionShare");
     if (sessionShareBtn) {
       sessionShareBtn.addEventListener("click", () => {
@@ -680,7 +729,8 @@ const Together = {
 
     const reflList = root.querySelector("#tgReflectionList");
     if (!verseReflections.length) {
-      reflList.innerHTML = '<p class="tg-empty tg-empty-inline">Nenhuma reflexão ainda neste versículo.</p>';
+      reflList.innerHTML =
+        '<p class="tg-empty tg-empty-inline">Nenhuma reflexão ainda neste versículo.</p>';
     } else {
       verseReflections.forEach((r) => {
         const row = togetherEl(
@@ -700,23 +750,29 @@ const Together = {
     });
     root.querySelector("#tgNextVerse").addEventListener("click", async () => {
       await window.TogetherDB.updateMyProgress(session.id, currentVerseNum + 1);
-      showToast("+2 pontos ✨");
+      // showToast("+2 pontos ✨");
       this.renderSession(session.id);
     });
-    root.querySelector("#tgReflectionSubmit").addEventListener("click", async () => {
-      const input = root.querySelector("#tgReflectionInput");
-      const body = input.value.trim();
-      if (!body) return;
-      try {
-        await window.TogetherDB.addReflection(session.id, currentVerseNum, body);
-        showToast("Reflexão publicada. +5 pontos ✨");
-        input.value = "";
-        this.renderSession(session.id);
-      } catch (e) {
-        console.error(e);
-        showToast("Não foi possível publicar a reflexão.");
-      }
-    });
+    root
+      .querySelector("#tgReflectionSubmit")
+      .addEventListener("click", async () => {
+        const input = root.querySelector("#tgReflectionInput");
+        const body = input.value.trim();
+        if (!body) return;
+        try {
+          await window.TogetherDB.addReflection(
+            session.id,
+            currentVerseNum,
+            body,
+          );
+          // showToast("Reflexão publicada. +5 pontos ✨");
+          input.value = "";
+          this.renderSession(session.id);
+        } catch (e) {
+          console.error(e);
+          showToast("Não foi possível publicar a reflexão.");
+        }
+      });
   },
 
   _watchForInvitee(sessionId, myId) {
@@ -745,7 +801,8 @@ const Together = {
   // ------------------------------------------------------------------
   async renderYou() {
     const root = this.viewYou;
-    root.innerHTML = '<div class="tg-loading tg-loading-full">Carregando perfil…</div>';
+    root.innerHTML =
+      '<div class="tg-loading tg-loading-full">Carregando perfil…</div>';
     try {
       const [profile, stats, incoming, friends] = await Promise.all([
         window.TogetherDB.getMyProfile({ fresh: true }),
@@ -812,25 +869,29 @@ const Together = {
              <span class="tg-friend-name">${req.requester?.display_name}</span>
              <button class="tg-accept-btn" data-id="${req.id}">Aceitar</button>`,
           );
-          row.querySelector(".tg-accept-btn").addEventListener("click", async (ev) => {
-            ev.stopPropagation();
-            await window.TogetherDB.respondFriendRequest(req.id, true);
-            showToast("Amizade aceita!");
-            this.renderYou();
-          });
+          row
+            .querySelector(".tg-accept-btn")
+            .addEventListener("click", async (ev) => {
+              ev.stopPropagation();
+              await window.TogetherDB.respondFriendRequest(req.id, true);
+              showToast("Amizade aceita!");
+              this.renderYou();
+            });
           box.appendChild(row);
         });
       }
 
-      root.querySelector("#tgUsernameSave").addEventListener("click", async () => {
-        const val = root.querySelector("#tgUsernameInput").value;
-        try {
-          await window.TogetherDB.setUsername(val);
-          showToast("Usuário atualizado!");
-        } catch (e) {
-          showToast(e.message || "Não foi possível salvar o usuário.");
-        }
-      });
+      root
+        .querySelector("#tgUsernameSave")
+        .addEventListener("click", async () => {
+          const val = root.querySelector("#tgUsernameInput").value;
+          try {
+            await window.TogetherDB.setUsername(val);
+            showToast("Usuário atualizado!");
+          } catch (e) {
+            showToast(e.message || "Não foi possível salvar o usuário.");
+          }
+        });
 
       const searchInput = root.querySelector("#tgFriendSearch");
       const resultsBox = root.querySelector("#tgFriendResults");
@@ -853,24 +914,27 @@ const Together = {
                <span class="tg-friend-name">${p.display_name} <span class="tg-card-meta">@${p.username}</span></span>
                <button class="tg-accept-btn" data-id="${p.id}">Adicionar</button>`,
             );
-            row.querySelector(".tg-accept-btn").addEventListener("click", async (ev) => {
-              ev.stopPropagation();
-              try {
-                await window.TogetherDB.sendFriendRequest(p.id);
-                showToast("Pedido de amizade enviado!");
-                resultsBox.innerHTML = "";
-                searchInput.value = "";
-              } catch (e) {
-                showToast("Não foi possível enviar o pedido.");
-              }
-            });
+            row
+              .querySelector(".tg-accept-btn")
+              .addEventListener("click", async (ev) => {
+                ev.stopPropagation();
+                try {
+                  await window.TogetherDB.sendFriendRequest(p.id);
+                  showToast("Pedido de amizade enviado!");
+                  resultsBox.innerHTML = "";
+                  searchInput.value = "";
+                } catch (e) {
+                  showToast("Não foi possível enviar o pedido.");
+                }
+              });
             resultsBox.appendChild(row);
           });
         }, 350);
       });
     } catch (e) {
       console.error(e);
-      root.innerHTML = '<p class="tg-empty tg-empty-full">Não foi possível carregar seu perfil agora.</p>';
+      root.innerHTML =
+        '<p class="tg-empty tg-empty-full">Não foi possível carregar seu perfil agora.</p>';
     }
   },
 };
