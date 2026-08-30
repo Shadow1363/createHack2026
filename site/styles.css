@@ -996,12 +996,6 @@ textarea::placeholder {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: radial-gradient(
-    1200px 800px at 50% -10%,
-    #f8fafc 0%,
-    #ffffff 40%,
-    #f8fafc 100%
-  );
   z-index: 70;
 }
 .login-card {
@@ -1256,12 +1250,7 @@ textarea::placeholder {
 }
 @media (prefers-color-scheme: dark) {
   .login-shell {
-    background: radial-gradient(
-      1200px 800px at 50% -10%,
-      #0b1220 0%,
-      #070b13 40%,
-      #0b1220 100%
-    );
+    background-image: url("./loginShell.png");
   }
   .login-card {
     background: #0b1220;
