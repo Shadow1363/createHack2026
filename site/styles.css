@@ -17,6 +17,7 @@
 }
 html,
 body {
+  touch-action: manipulation;
   margin: 0;
   padding: 0;
 }
@@ -190,7 +191,7 @@ body {
 }
 
 .swipeable {
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 .verse-inner {
   display: flex;
