@@ -188,10 +188,13 @@ body {
   max-width: 640px;
   text-align: center;
   color: var(--parchment);
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .swipeable {
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 .verse-inner {
   display: flex;
