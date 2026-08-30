@@ -190,7 +190,7 @@ body {
 }
 
 .swipeable {
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 .verse-inner {
   display: flex;
@@ -268,8 +268,11 @@ body {
   margin-inline: auto;
   border-radius: 28px 28px 0 0;
   border: 1px solid color-mix(in srgb, var(--gold) 14%, var(--rule));
-  background:
-    linear-gradient(180deg, rgba(32, 36, 48, 0.98), rgba(18, 22, 30, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(32, 36, 48, 0.98),
+    rgba(18, 22, 30, 0.98)
+  );
   box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.28);
   transform: translateY(calc(100% + 24px));
   opacity: 0;
@@ -311,7 +314,9 @@ body {
   padding: 0 20px 14px;
 }
 .ai-sheet-kicker {
-  font: 600 11px/1 "Inter", sans-serif;
+  font:
+    600 11px/1 "Inter",
+    sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--gold);
@@ -357,7 +362,9 @@ body {
 }
 .ai-sheet-ref {
   margin: 0;
-  font: 600 12px/1.2 "Inter", sans-serif;
+  font:
+    600 12px/1.2 "Inter",
+    sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--gold);
@@ -365,7 +372,9 @@ body {
 .ai-sheet-original {
   margin: 0;
   color: var(--parchment-dim);
-  font: 400 15px/1.6 "Inter", sans-serif;
+  font:
+    400 15px/1.6 "Inter",
+    sans-serif;
 }
 .ai-sheet-copy {
   display: grid;
@@ -375,7 +384,9 @@ body {
 .ai-sheet-theme-title {
   margin: 0;
   color: var(--parchment);
-  font: 400 clamp(24px, 4vw, 34px) / 1.15 "Fraunces", serif;
+  font:
+    400 clamp(24px, 4vw, 34px) / 1.15 "Fraunces",
+    serif;
 }
 .ai-sheet-section {
   display: grid;
@@ -389,17 +400,23 @@ body {
 .ai-sheet-section-label {
   margin: 0;
   color: var(--gold);
-  font: 600 11px/1.2 "Inter", sans-serif;
+  font:
+    600 11px/1.2 "Inter",
+    sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .ai-sheet-section-copy {
   margin: 0;
   color: var(--parchment);
-  font: 400 15px/1.65 "Inter", sans-serif;
+  font:
+    400 15px/1.65 "Inter",
+    sans-serif;
 }
 .ai-sheet-section-copy-featured {
-  font: 400 clamp(18px, 2.8vw, 22px) / 1.5 "Fraunces", serif;
+  font:
+    400 clamp(18px, 2.8vw, 22px) / 1.5 "Fraunces",
+    serif;
 }
 .ai-sheet-copy.is-loading {
   color: color-mix(in srgb, var(--parchment-dim) 84%, var(--gold) 16%);

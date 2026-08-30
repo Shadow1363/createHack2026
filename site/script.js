@@ -1882,9 +1882,9 @@ function attachVideoBehaviors(scrollerEl) {
 function buildEndOfChapterMcqSection(mcq, onContinue) {
   const sec = document.createElement("div");
   sec.className = "section quiz-section";
-  sec.setAttribute("data-ref", "Quiz fim do capítulo");
+  sec.setAttribute("data-ref", "Quiz");
   sec.innerHTML = `
-      <p class="eyebrow">Final do capítulo — múltipla escolha</p>
+      <p class="eyebrow"></p>
       <p class="quiz-q">${mcq.question}</p>
       <div class="options"></div>
       <p class="feedback"></p>
