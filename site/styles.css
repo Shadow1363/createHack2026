@@ -993,13 +993,6 @@ textarea::placeholder {
 .login-ico {
   width: 16px;
   height: 16px;
-  border-radius: 4px;
-  background: conic-gradient(
-    from 210deg at 50% 50%,
-    #9ca3af 0 30%,
-    #d1d5db 30% 60%,
-    #e5e7eb 60% 100%
-  );
 }
 .login-foot {
   margin: 16px 0 0 0;
