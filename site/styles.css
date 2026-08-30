@@ -257,7 +257,7 @@ body {
 
 .saved-counter {
   position: fixed;
-  top: 22px;
+  bottom: 32px;
   right: 24px;
   z-index: 40;
   display: flex;
@@ -874,7 +874,7 @@ textarea::placeholder {
 .login-shell {
   position: fixed;
   inset: 0;
-  display: grid;
+  display: flex;
   place-items: center;
   padding: 24px;
   background: radial-gradient(
@@ -917,10 +917,6 @@ textarea::placeholder {
   color: #fff;
   margin: 0 auto 14px auto;
   box-shadow: 0 14px 30px -12px rgba(17, 24, 39, 0.5);
-}
-.login-mark svg {
-  width: 30px;
-  height: 30px;
 }
 .login-title {
   margin: 0 0 6px 0;
@@ -993,6 +989,10 @@ textarea::placeholder {
 .login-ico {
   width: 16px;
   height: 16px;
+}
+
+.login-ico-big {
+  width: 150px;
 }
 .login-foot {
   margin: 16px 0 0 0;
