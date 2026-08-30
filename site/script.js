@@ -750,47 +750,451 @@ const McqSource = {
     const chapter = parseInt(String(contentId).replace(/^GEN\./, ""), 10);
     const bank = [
       {
-        q: "No primeiro dia da criação, o que Deus fez primeiro?",
-        options: [
-          "Criou os luminares no céu",
-          "Disse: Haja luz, e separou a luz das trevas",
-          "Formou o homem do pó da terra",
-        ],
+        q: "Antes mesmo de o Sol, a Lua e as estrelas aparecerem no céu, Deus já havia criado algo fundamental. O que era?",
+        options: ["Os mares e oceanos", "A luz", "As plantas e árvores"],
         correctIndex: 1,
         explanation:
-          "Gênesis 1:3–5 — a luz vem antes dos luminares do quarto dia; o homem é formado no capítulo 2.",
+          "Gênesis 1:3–5 — Deus criou a luz no primeiro dia, muito antes do sol, da lua e das estrelas, que só surgem no quarto dia.",
       },
       {
-        q: "O rio que saía de Éden se dividia em quatro braços. Qual deles NÃO está listado em Gênesis 2?",
-        options: ["Eufrates", "Tigre (Hiddequel)", "Nilo"],
-        correctIndex: 2,
-        explanation:
-          "Os quatro rios são Pisom, Giom, Hiddequel (Tigre) e Eufrates (Gênesis 2:10–14). Nilo não aparece.",
-      },
-      {
-        q: "Que maldição Deus pronunciou sobre a serpente em Gênesis 3?",
+        q: "Adão estava no jardim, cercado de animais e de toda a criação. Mesmo assim, Deus percebeu que algo não estava bom. O que era?",
         options: [
-          "Rastejar sobre o ventre e comer pó todos os dias da sua vida",
-          "Ser expulsa do Éden junto com Adão",
-          "Não poder provar do fruto das árvores do jardim",
+          "Adão estar sozinho",
+          "Não existir chuva",
+          "Não haver animais suficientes",
         ],
         correctIndex: 0,
         explanation:
-          "Gênesis 3:14 — a serpente rasteja sobre o ventre e come pó; a expulsão é sobre o casal humano.",
+          "Gênesis 2:18 — Deus disse que não era bom que o homem estivesse só, por isso decidiu fazer-lhe uma auxiliadora idônea.",
       },
       {
-        q: "Caim matou Abel por ciúmes de quê?",
+        q: "A serpente convenceu Eva a comer justamente o fruto que Deus havia proibido. O que aconteceu logo depois que Adão e Eva comeram?",
         options: [
-          "Da beleza dos rebanhos de Abel",
-          "Do favor de Deus sobre a oferta de Abel",
-          "Da herança prometida a Abel",
+          "Foram expulsos imediatamente do jardim",
+          "Perceberam que estavam nus",
+          "A serpente desapareceu",
         ],
         correctIndex: 1,
         explanation:
-          "Gênesis 4:4–5 — Deus respeitou Abel e sua oferta, mas não a Caim; a ira de Caim resultou em fratricídio.",
+          "Gênesis 3:7 — os olhos de ambos se abriram e perceberam que estavam nus, cobrindo-se com folhas de figueira; a expulsão do jardim veio depois.",
+      },
+      {
+        q: "Caim e Abel levaram ofertas ao Senhor, mas a história terminou de forma trágica. Qual era a profissão de Abel?",
+        options: ["Pastor de ovelhas", "Agricultor", "Construtor"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 4:2 — Abel era pastor de ovelhas, enquanto Caim era lavrador da terra.",
+      },
+      {
+        q: "Entre tantos nomes e idades impressionantes, um homem teve uma história diferente: ele “andou com Deus” e desapareceu. Quem era?",
+        options: ["Noé", "Enoque", "Matusalém"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 5:24 — Enoque andou com Deus e desapareceu, pois Deus o tomou; ao contrário dos demais da genealogia, sua morte não é registrada.",
+      },
+      {
+        q: "Noé recebeu uma missão que provavelmente parecia impossível: construir uma enorme arca. De que material ela deveria ser feita?",
+        options: ["Pedra", "Madeira", "Tijolos"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 6:14 — Deus ordenou que Noé construísse a arca de madeira de gofer, revestindo-a com betume por dentro e por fora.",
+      },
+      {
+        q: "Noé, sua família e os animais estavam dentro da arca quando começou o dilúvio. Por quanto tempo a chuva caiu sobre a terra?",
+        options: [
+          "7 dias e 7 noites",
+          "30 dias e 30 noites",
+          "40 dias e 40 noites",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Gênesis 7:12 — a chuva caiu sobre a terra durante quarenta dias e quarenta noites.",
+      },
+      {
+        q: "Depois de meses dentro da arca, Noé soltou aves para descobrir se as águas haviam baixado. Qual delas voltou trazendo uma folha de oliveira?",
+        options: ["A pomba", "O corvo", "A águia"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 8:11 — a pomba voltou à tarde trazendo uma folha de oliveira no bico; o corvo, solto antes, apenas ficou indo e voltando.",
+      },
+      {
+        q: "Depois do dilúvio, Deus estabeleceu uma aliança com Noé e seus descendentes. Qual sinal foi colocado nas nuvens como lembrança dessa aliança?",
+        options: ["Uma estrela", "Um arco-íris", "Uma coluna de fogo"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 9:12–17 — Deus estabeleceu o arco-íris nas nuvens como sinal de que nunca mais destruiria a terra por um dilúvio.",
+      },
+      {
+        q: "Gênesis 10 parece uma enorme árvore genealógica. De quais três filhos de Noé descendem os povos mencionados nesse capítulo?",
+        options: [
+          "Sem, Cam e Jafé",
+          "Caim, Abel e Sete",
+          "Abraão, Naor e Harã",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 10:1 — o capítulo lista os descendentes de Sem, Cam e Jafé, os três filhos de Noé, origem das nações da terra.",
+      },
+      {
+        q: "Antes da construção da Torre de Babel, havia algo bem diferente no mundo em relação à comunicação entre as pessoas. O que era?",
+        options: [
+          "Cada família possuía sua própria língua",
+          "Todos falavam a mesma língua",
+          "Apenas os líderes sabiam falar e escrever",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 11:1 — toda a terra falava a mesma língua e usava as mesmas palavras, antes de Deus confundir a linguagem em Babel.",
+      },
+      {
+        q: "Abrão recebeu de Deus uma ordem que mudaria completamente sua vida. O que ele deveria deixar para trás?",
+        options: [
+          "Apenas seus rebanhos",
+          "Sua terra, parentes e casa de seu pai",
+          "Sua esposa e seus servos",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 12:1 — Deus ordenou que Abrão saísse de sua terra, de seus parentes e da casa de seu pai, rumo à terra que lhe seria mostrada.",
+      },
+      {
+        q: "Os rebanhos de Abrão e Ló cresceram tanto que os dois precisaram se separar. Qual região Ló escolheu?",
+        options: [
+          "A região próxima de Sodoma",
+          "O deserto do Sinai",
+          "A terra do Egito",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 13:10–12 — Ló escolheu a planície do Jordão, bem regada, armando suas tendas até perto de Sodoma.",
+      },
+      {
+        q: "Quando Ló foi capturado durante uma guerra entre reis, Abrão decidiu agir. O que ele fez?",
+        options: [
+          "Pagou um resgate",
+          "Reuniu seus homens e foi salvá-lo",
+          "Pediu ajuda ao Egito",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 14:14–16 — Abrão reuniu 318 homens nascidos em sua casa, perseguiu os reis inimigos e resgatou Ló, seus bens e seu povo.",
+      },
+      {
+        q: "Abrão ainda não tinha o filho prometido quando Deus o levou para fora e pediu que olhasse para o céu. O que as estrelas representavam?",
+        options: [
+          "As terras que ele conquistaria",
+          "Seus futuros descendentes",
+          "Os anos que ainda viveria",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 15:5 — Deus disse a Abrão para contar as estrelas, se pudesse, pois assim seria sua descendência.",
+      },
+      {
+        q: "Sarai ainda não tinha filhos e decidiu entregar sua serva a Abrão. Qual era o nome dessa serva?",
+        options: ["Hagar", "Rebeca", "Bila"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 16:1–4 — Sarai deu sua serva egípcia Hagar a Abrão para que ele tivesse um filho por meio dela; desse relacionamento nasceu Ismael.",
+      },
+      {
+        q: "Deus reafirmou sua aliança e mudou o nome de Abrão. Qual passou a ser seu novo nome?",
+        options: ["Israel", "Abraão", "Isaque"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 17:5 — o nome de Abrão foi mudado para Abraão, pois ele se tornaria pai de muitas nações; Israel foi o nome dado depois a Jacó.",
+      },
+      {
+        q: "Três visitantes chegaram até Abraão e anunciaram que Sara teria um filho. Qual foi a reação dela ao ouvir isso?",
+        options: ["Chorou", "Riu", "Saiu correndo"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 18:10–12 — ao ouvir que teria um filho na velhice, Sara riu consigo mesma, duvidando da promessa.",
+      },
+      {
+        q: "Enquanto Ló e sua família fugiam da destruição de Sodoma, receberam uma ordem clara: não olhar para trás. Quem desobedeceu?",
+        options: ["Ló", "A esposa de Ló", "Uma das filhas de Ló"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 19:17,26 — a esposa de Ló olhou para trás durante a fuga e se transformou numa estátua de sal.",
+      },
+      {
+        q: "Em Gerar, Abraão ficou com medo por causa da beleza de Sara. Como ele a apresentou ao rei Abimeleque?",
+        options: ["Como sua irmã", "Como sua serva", "Como sua prima"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 20:2 — temendo por sua vida, Abraão disse que Sara era sua irmã, repetindo um engano semelhante ao do capítulo 12.",
+      },
+      {
+        q: "Depois de anos esperando, Abraão e Sara finalmente tiveram o filho prometido. Quantos anos Abraão tinha quando Isaque nasceu?",
+        options: ["75 anos", "90 anos", "100 anos"],
+        correctIndex: 2,
+        explanation:
+          "Gênesis 21:5 — Abraão tinha cem anos de idade quando seu filho Isaque nasceu.",
+      },
+      {
+        q: "Deus colocou Abraão à prova pedindo que oferecesse Isaque. No momento decisivo, o que foi oferecido no lugar do menino?",
+        options: [
+          "Um cordeiro trazido por um servo",
+          "Um carneiro preso pelos chifres",
+          "Uma pomba",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 22:13 — Abraão viu um carneiro preso pelos chifres num arbusto e o ofereceu em holocausto no lugar do filho.",
+      },
+      {
+        q: "Depois da morte de Sara, Abraão quis comprar um lugar para sepultá-la. Qual local ele adquiriu?",
+        options: ["A caverna de Macpela", "O monte Moriá", "A torre de Babel"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 23:17–20 — Abraão comprou o campo e a caverna de Macpela, de Efrom, o heteu, para sepultar Sara.",
+      },
+      {
+        q: "O servo de Abraão pediu a Deus um sinal para encontrar a mulher certa para Isaque. O que ela deveria fazer?",
+        options: [
+          "Oferecer comida aos viajantes",
+          "Dar água a ele e também aos camelos",
+          "Convidá-lo para dormir em sua casa",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 24:12–20 — o sinal pedido foi que a moça escolhida se oferecesse para dar água ao servo e aos seus camelos; Rebeca fez exatamente isso.",
+      },
+      {
+        q: "Esaú voltou do campo faminto e encontrou Jacó preparando comida. O que ele entregou em troca de uma refeição?",
+        options: ["Seu rebanho", "Sua primogenitura", "Sua bênção paterna"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 25:29–34 — faminto, Esaú vendeu sua primogenitura a Jacó por um prato de guisado de lentilhas.",
+      },
+      {
+        q: "Isaque prosperou, mas seus servos enfrentaram várias disputas por causa de poços. O que Isaque geralmente fazia após essas discussões?",
+        options: [
+          "Entrava em guerra",
+          "Mudava-se e cavava outro poço",
+          "Fechava todos os poços",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 26:19–22 — em vez de brigar, Isaque preferia se mudar e cavar novos poços até encontrar um que não gerasse disputa.",
+      },
+      {
+        q: "Jacó queria receber a bênção que Isaque pretendia dar a Esaú. Como ele enganou seu pai, que já não enxergava bem?",
+        options: [
+          "Vestiu as roupas de Esaú e cobriu os braços com peles",
+          "Imitou perfeitamente a voz de Esaú",
+          "Esperou Isaque dormir",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 27:15–23 — Jacó vestiu as roupas de Esaú e cobriu as mãos e o pescoço com peles de cabrito para enganar o tato de Isaque.",
+      },
+      {
+        q: "Durante uma viagem, Jacó dormiu usando uma pedra como apoio e teve um sonho marcante. O que ele viu?",
+        options: [
+          "Uma escada ligando a terra ao céu",
+          "Uma arca sobre uma montanha",
+          "Sete estrelas brilhantes",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 28:12 — Jacó sonhou com uma escada apoiada na terra cujo topo chegava ao céu, com anjos subindo e descendo por ela.",
+      },
+      {
+        q: "Jacó trabalhou sete anos para se casar com Raquel. Mas, depois do casamento, descobriu que Labão havia lhe dado quem?",
+        options: ["Bila", "Lia", "Zilpa"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 29:20–25 — Labão enganou Jacó e lhe deu Lia, a filha mais velha, em vez de Raquel.",
+      },
+      {
+        q: "A família de Jacó cresceu rapidamente, assim como seus rebanhos. Qual filho de Raquel nasceu neste capítulo?",
+        options: ["José", "Benjamim", "Judá"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 30:22–24 — Deus se lembrou de Raquel, que deu à luz José; Benjamim nasceria somente mais tarde.",
+      },
+      {
+        q: "Depois de muitos anos trabalhando para Labão, Jacó decidiu voltar para sua terra. Quem levou escondido os ídolos da casa de Labão?",
+        options: ["Lia", "Raquel", "José"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 31:19 — enquanto Labão tosquiava suas ovelhas, Raquel furtou os ídolos (terafins) que pertenciam a seu pai.",
+      },
+      {
+        q: "Na noite anterior ao reencontro com Esaú, Jacó passou por uma experiência misteriosa. Depois de lutar até o amanhecer, qual novo nome recebeu?",
+        options: ["Israel", "Abraão", "Edom"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 32:24–28 — depois de lutar a noite toda com um homem, identificado como um ser divino, Jacó recebeu o novo nome de Israel.",
+      },
+      {
+        q: "Jacó estava com medo de encontrar Esaú depois de tantos anos. Quando finalmente se viram, como Esaú reagiu?",
+        options: [
+          "Atacou Jacó",
+          "Correu, abraçou e beijou Jacó",
+          "Ignorou Jacó completamente",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 33:4 — contrariando o medo de Jacó, Esaú correu ao seu encontro, abraçou-o, beijou-o, e ambos choraram.",
+      },
+      {
+        q: "Depois do que aconteceu com Diná, dois dos filhos de Jacó executaram uma vingança violenta contra a cidade. Quem foram eles?",
+        options: ["Rúben e Judá", "Simeão e Levi", "José e Benjamim"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 34:25 — Simeão e Levi, irmãos de Diná, atacaram a cidade de Siquém à espada como vingança.",
+      },
+      {
+        q: "Deus mandou Jacó voltar ao lugar onde havia aparecido a ele quando fugia de Esaú. Para onde Jacó foi?",
+        options: ["Betel", "Babel", "Sodoma"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 35:1–7 — Deus ordenou que Jacó subisse a Betel, o lugar onde lhe aparecera quando fugia de Esaú, e ali construísse um altar.",
+      },
+      {
+        q: "Gênesis 36 acompanha principalmente a família de Esaú. Por qual outro nome Esaú também ficou conhecido?",
+        options: ["Edom", "Moabe", "Amom"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 36:1 — o capítulo apresenta a descendência de Esaú, que também é chamado de Edom.",
+      },
+      {
+        q: "José contou à família sonhos que indicavam que um dia eles se curvariam diante dele. Como seus irmãos reagiram?",
+        options: [
+          "Ficaram felizes por ele",
+          "Passaram a odiá-lo ainda mais",
+          "Pediram que interpretasse seus sonhos",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 37:5–8 — ao ouvirem os sonhos de José, que sugeriam que se curvariam diante dele, os irmãos passaram a odiá-lo ainda mais.",
+      },
+      {
+        q: "Tamar se disfarçou para não ser reconhecida por Judá. Quais objetos ela recebeu dele como garantia?",
+        options: [
+          "Seu selo, cordão e cajado",
+          "Sua espada e sandálias",
+          "Seu manto e anel",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 38:17–18 — como penhor até o pagamento combinado, Judá deu a Tamar seu selo, seu cordão e seu cajado.",
+      },
+      {
+        q: "José foi vendido como escravo, mas ganhou a confiança de seu senhor egípcio. Em qual casa ele passou a trabalhar?",
+        options: [
+          "Na casa de Potifar",
+          "Na casa do faraó",
+          "Na casa de Abimeleque",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 39:1–4 — José foi comprado por Potifar, oficial do faraó, e passou a administrar sua casa.",
+      },
+      {
+        q: "Na prisão, José encontrou dois oficiais do faraó que tiveram sonhos misteriosos. Quem eram eles?",
+        options: [
+          "O copeiro e o padeiro",
+          "O general e o sacerdote",
+          "O escriba e o cozinheiro",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 40:1–5 — o copeiro-mor e o padeiro-mor do faraó, presos junto com José, tiveram cada um um sonho na mesma noite.",
+      },
+      {
+        q: "O faraó sonhou com sete vacas gordas sendo devoradas por sete vacas magras. O que José disse que isso representava?",
+        options: [
+          "Sete guerras seguidas de paz",
+          "Sete anos de fartura seguidos por sete anos de fome",
+          "Sete novos reis do Egito",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 41:25–30 — José interpretou o sonho como sete anos de grande fartura no Egito, seguidos por sete anos de fome severa.",
+      },
+      {
+        q: "Durante a fome, os irmãos de José foram ao Egito comprar alimentos. Eles reconheceram José quando ficaram diante dele?",
+        options: [
+          "Sim, imediatamente",
+          "Não, mas José os reconheceu",
+          "Apenas Benjamim o reconheceu",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 42:6–8 — José reconheceu seus irmãos assim que os viu, mas eles não o reconheceram.",
+      },
+      {
+        q: "Os irmãos precisavam voltar ao Egito, mas havia uma condição estabelecida por José. Quem precisava ir com eles?",
+        options: ["Jacó", "Benjamim", "Simeão"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 43:3–5 — José havia exigido que os irmãos só voltassem à sua presença se trouxessem Benjamim com eles.",
+      },
+      {
+        q: "José mandou esconder um objeto na bagagem de Benjamim para testar seus irmãos. Que objeto era?",
+        options: ["Um anel de ouro", "Uma taça de prata", "Um pequeno ídolo"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 44:1–2 — José ordenou que sua taça de prata fosse colocada na saca de Benjamim, como um teste para seus irmãos.",
+      },
+      {
+        q: "Depois de anos separado de sua família, José finalmente revelou sua identidade aos irmãos. Como eles reagiram inicialmente?",
+        options: [
+          "Ficaram sem conseguir responder",
+          "Começaram a comemorar imediatamente",
+          "Não acreditaram nele e foram embora",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 45:1–3 — ao se revelar, José deixou seus irmãos tão perturbados que eles não conseguiram lhe responder.",
+      },
+      {
+        q: "Jacó descobriu que José estava vivo e decidiu partir para o Egito. Antes de continuar a viagem, onde ele ofereceu sacrifícios a Deus?",
+        options: ["Berseba", "Betel", "Hebrom"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 46:1–4 — a caminho do Egito, Jacó parou em Berseba e ali ofereceu sacrifícios ao Deus de seu pai Isaque.",
+      },
+      {
+        q: "José apresentou sua família ao faraó, e eles receberam uma região para viver. Qual era essa região?",
+        options: ["Gósen", "Canaã", "Edom"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 47:5–6 — o faraó concedeu à família de José a melhor parte da terra, a região de Gósen, para que ali habitassem.",
+      },
+      {
+        q: "Quando Jacó foi abençoar os filhos de José, ele cruzou as mãos propositalmente. Quem recebeu a bênção principal, apesar de ser o mais novo?",
+        options: ["Manassés", "Efraim", "Benjamim"],
+        correctIndex: 1,
+        explanation:
+          "Gênesis 48:13–20 — Jacó cruzou os braços de propósito para colocar a mão direita sobre Efraim, o mais novo, dando-lhe a bênção maior em vez de a Manassés.",
+      },
+      {
+        q: "Antes de morrer, Jacó reuniu seus filhos e falou sobre o futuro deles. Qual filho foi comparado a um leão?",
+        options: ["Judá", "José", "Levi"],
+        correctIndex: 0,
+        explanation:
+          "Gênesis 49:8–9 — Jacó comparou Judá a um leãozinho, descrevendo sua força e liderança entre os irmãos.",
+      },
+      {
+        q: "Depois da morte de Jacó, os irmãos de José ficaram com medo de que ele finalmente se vingasse. Como José reagiu?",
+        options: [
+          "Expulsou os irmãos do Egito",
+          "Mandou prendê-los",
+          "Perdoou e tranquilizou seus irmãos",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Gênesis 50:15–21 — José tranquilizou seus irmãos, perdoando-os e afirmando que Deus havia transformado o mal em bem.",
       },
     ];
-    const pick = bank[chapter % bank.length];
+    const pick =
+      bank[(((chapter - 1) % bank.length) + bank.length) % bank.length];
+    console.log(pick);
     return {
       chapterId: contentId,
       question: pick.q,
