@@ -994,7 +994,7 @@ let hintTaught = false;
 
 const savedCounter = document.createElement("div");
 savedCounter.className = "saved-counter";
-savedCounter.innerHTML = `<span class="cbookmark"></span>`;
+savedCounter.innerHTML = `<span class="cbookmark"></span><span id="savedCount">0</span> salvos`;
 savedCounter.setAttribute("role", "button");
 savedCounter.setAttribute("tabindex", "0");
 savedCounter.setAttribute("aria-label", "Abrir versículos salvos");
@@ -1008,6 +1008,19 @@ document.body.appendChild(toast);
 const vignette = document.createElement("div");
 vignette.className = "focus-vignette";
 document.body.appendChild(vignette);
+
+const aiSheetBackdrop = document.createElement("div");
+aiSheetBackdrop.className = "ai-sheet-backdrop";
+aiSheetBackdrop.setAttribute("aria-hidden", "true");
+document.body.appendChild(aiSheetBackdrop);
+
+const aiSheet = document.createElement("section");
+aiSheet.className = "ai-sheet";
+aiSheet.setAttribute("role", "dialog");
+aiSheet.setAttribute("aria-modal", "true");
+aiSheet.setAttribute("aria-hidden", "true");
+aiSheet.setAttribute("aria-label", "Explicação do versículo");
+document.body.appendChild(aiSheet);
 
 let toastTimer = null;
 let pendingReaderDeepLink = parseReaderDeepLink();
@@ -1049,6 +1062,33 @@ function preview(text) {
 const AI_QUESTION_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-question-mark-icon lucide-message-circle-question-mark"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`;
 const AI_REPLY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-reply-icon lucide-message-circle-reply"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="m10 15-3-3 3-3"/><path d="M7 12h8a2 2 0 0 1 2 2v1"/></svg>`;
 const AI_REWORD_CACHE = new Map();
+const AI_SHEET_PEEK = 272;
+const aiSheetState = {
+  activeButton: null,
+  activeKey: "",
+  requestId: 0,
+  open: false,
+  dragging: false,
+  collapsedOffset: 0,
+  currentOffset: 0,
+  startY: 0,
+  startOffset: 0,
+};
+
+aiSheet.innerHTML = `
+  <div class="ai-sheet-dragger" aria-hidden="true">
+    <span class="ai-sheet-grip"></span>
+  </div>
+  <div class="ai-sheet-head">
+    <div class="ai-sheet-kicker">Português simples</div>
+    <button class="ai-sheet-close" type="button" aria-label="Fechar explicação" title="Fechar explicação">${AI_REPLY_ICON}</button>
+  </div>
+  <div class="ai-sheet-body">
+    <p class="ai-sheet-ref"></p>
+    <p class="ai-sheet-original"></p>
+    <div class="ai-sheet-copy is-loading">Preparando uma explicação mais clara…</div>
+  </div>
+`;
 
 function prefersReducedMotion() {
   return (
@@ -1068,44 +1108,20 @@ function buildChapterContext(chapterData) {
     .join("\n");
 }
 
-function setAiButtonState(btn, mode, loading) {
-  btn.classList.toggle("is-active", mode === "simplified");
+function setAiButtonState(btn, active, loading) {
+  if (!btn) return;
+  btn.classList.toggle("is-active", !!active);
   btn.classList.toggle("is-loading", !!loading);
   btn.disabled = !!loading;
-  btn.innerHTML = mode === "simplified" ? AI_REPLY_ICON : AI_QUESTION_ICON;
+  btn.innerHTML = active ? AI_REPLY_ICON : AI_QUESTION_ICON;
   btn.setAttribute(
     "aria-label",
-    mode === "simplified"
-      ? "Voltar ao texto original"
-      : "Reescrever em português simples",
+    active ? "Fechar explicação" : "Abrir explicação em português simples",
   );
   btn.setAttribute(
     "title",
-    mode === "simplified"
-      ? "Voltar ao texto original"
-      : "Reescrever em português simples",
+    active ? "Fechar explicação" : "Abrir explicação em português simples",
   );
-}
-
-async function typeText(textEl, nextText) {
-  const text = String(nextText || "").trim();
-  if (!text) return;
-  if (prefersReducedMotion()) {
-    textEl.textContent = text;
-    return;
-  }
-  textEl.classList.add("is-rewording");
-  await new Promise((resolve) => setTimeout(resolve, 90));
-  textEl.textContent = "";
-  textEl.classList.remove("is-rewording");
-  textEl.classList.add("is-typing");
-  const stepMs = text.length > 220 ? 7 : text.length > 140 ? 10 : 13;
-  for (let i = 1; i <= text.length; i += 1) {
-    textEl.textContent = text.slice(0, i);
-    // Keep the effect subtle and fast for casual reading.
-    await new Promise((resolve) => setTimeout(resolve, stepMs));
-  }
-  textEl.classList.remove("is-typing");
 }
 
 async function fetchSimplifiedVerse(chapterData, verse) {
@@ -1120,28 +1136,46 @@ async function fetchSimplifiedVerse(chapterData, verse) {
       Authorization: `Bearer ${CHAT_GPT_TOKEN}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       temperature: 0.3,
-      max_tokens: 140,
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content:
-            "Crie uma explicação com fidelidade bíblica, sem usar fontes externas, de forma que uma pessoa da geração Z possa compreender. Use palavras do grego para aprofundar um pouco e melhorar a explicação. Não ultrapasse 70 caracteres. Utilize Português.",
+          content: `Você é um assistente teológico que explica versículos bíblicos dentro de um aplicativo. Você deve ler o versículo dentro do contexto do capítulo e do livro inteiro.
+
+GUARDA-ROUPAS BÍBLICOS OBRIGATÓRIOS:
+1. A Bíblia é a fonte primária. Não apresente tradição, especulação ou comentário cultural como texto explícito.
+2. Nunca invente versículos ou referências. Se houver incerteza, declare-a.
+3. Distinga claramente texto bíblico, interpretação e aplicação.
+4. Evite prova-textual (proof-texting). Interprete considerando contexto imediato, histórico, cultural e gênero literário.
+5. Reconheça a diversidade teológica quando houver divergência entre tradições cristãs fiéis.
+6. Nunca afirme falar por Deus, alegue nova revelação ou declare certeza sobre motivos ocultos de Deus.
+7. Nunca atribua sofrimento a punição divina sem base bíblica explícita. A orientação bíblica não substitui aconselhamento profissional.
+
+FORMATO DE SAÍDA:
+Você deve retornar ESTRITAMENTE um objeto JSON contendo as seguintes chaves, mapeadas para a interface do aplicativo:
+{
+  "theme_title": "Um título curto para o tema central (ex: 'A videira').",
+  "theme_intro": "Um parágrafo curto explicando a centralidade literária ou simbólica do tema no texto.",
+  "historical": "Contexto histórico relevante para entender o versículo (momento histórico, autor, público original). Se não houver, retorne '-'.",
+  "cultural": "Contexto cultural ou costumes da época relevantes ao versículo. Se não houver, retorne '-'.",
+  "people": "Quem está envolvido na narrativa do versículo (quem fala, para quem, quem está presente). Se não houver, retorne '-'.",
+  "explanation": "A explicação detalhada do versículo em si, considerando todo o contexto acima.",
+  "disclaimer": "- Essa explicação foi gerada por inteligência artificial e pode apresentar erros. Recomendamos a consulta da palavra original."
+}
+Responda em português, de forma clara, direta e acessível a um leitor leigo, sem jargões desnecessários.`,
         },
         {
           role: "user",
-          content:
-            `Capítulo completo para contexto (${chapterData.reference.human}):\n${chapterContext}\n\n` +
-            `Versículo alvo: ${verse.number}\n` +
-            `Texto original do versículo alvo: ${verse.text}\n\n` +
-            "Reescreva somente o versículo alvo em português simples, curto e claro.",
+          content: `Referência: ${chapterData.reference.human}\n\nContexto do Capítulo Inteiro:\n${chapterContext}\n\nVersículo Alvo: ${verse.number}\nTexto do Versículo: ${verse.text}\n\nGere a explicação em JSON estruturado.`,
         },
       ],
     }),
   });
   if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
+    const errorText = await res.json().catch(() => "");
     throw new Error(errorText || `OpenAI ${res.status}`);
   }
   const data = await res.json();
@@ -1153,50 +1187,238 @@ async function fetchSimplifiedVerse(chapterData, verse) {
   return content;
 }
 
-function makeAiRewordable(sectionEl, chapterData, verse) {
-  const textEl = sectionEl.querySelector(".verse-text");
-  const btn = sectionEl.querySelector(".ai-btn");
-  const originalText = String(verse.text || "");
-  let showingSimplified = false;
-  let simplifiedText = null;
-  let pending = false;
+function getAiSheetClosedOffset() {
+  return aiSheet.offsetHeight + 28;
+}
 
-  setAiButtonState(btn, "original", false);
+function getAiSheetCollapsedOffset() {
+  const height = aiSheet.offsetHeight || 0;
+  const visible = Math.min(
+    Math.max(window.innerHeight * 0.34, 220),
+    AI_SHEET_PEEK,
+  );
+  return Math.max(height - visible, 0);
+}
+
+function applyAiSheetOffset(offset, immediate) {
+  aiSheetState.currentOffset = Math.max(0, offset);
+  aiSheet.style.transition = immediate || aiSheetState.dragging ? "none" : "";
+  aiSheet.style.transform = `translateY(${aiSheetState.currentOffset}px)`;
+}
+
+function clearActiveAiButton() {
+  if (!aiSheetState.activeButton) return;
+  setAiButtonState(aiSheetState.activeButton, false, false);
+  aiSheetState.activeButton = null;
+  aiSheetState.activeKey = "";
+}
+
+function normalizeAiSheetPayload(copy) {
+  if (copy && typeof copy === "object") return copy;
+  const raw = String(copy || "").trim();
+  if (!raw) throw new Error("A IA não retornou conteúdo.");
+  return JSON.parse(raw);
+}
+
+function appendAiSheetSection(container, label, text, featured) {
+  const content = String(text || "").trim();
+  if (!content || content === "-") return;
+  const section = document.createElement("section");
+  section.className = featured
+    ? "ai-sheet-section ai-sheet-section-featured"
+    : "ai-sheet-section";
+
+  const title = document.createElement("h3");
+  title.className = "ai-sheet-section-label";
+  title.textContent = label;
+
+  const body = document.createElement("p");
+  body.className = featured
+    ? "ai-sheet-section-copy ai-sheet-section-copy-featured"
+    : "ai-sheet-section-copy";
+  body.textContent = content;
+
+  section.appendChild(title);
+  section.appendChild(body);
+  container.appendChild(section);
+}
+
+function fillAiSheetCopy(copy, isError) {
+  const copyEl = aiSheet.querySelector(".ai-sheet-copy");
+  copyEl.replaceChildren();
+  copyEl.className = isError ? "ai-sheet-copy is-error" : "ai-sheet-copy";
+
+  if (isError) {
+    copyEl.textContent = String(copy || "");
+    return;
+  }
+
+  let payload = null;
+  try {
+    payload = normalizeAiSheetPayload(copy);
+  } catch (_) {
+    copyEl.textContent = String(copy || "");
+    return;
+  }
+
+  const title = document.createElement("h2");
+  title.className = "ai-sheet-theme-title";
+  title.textContent = String(payload.theme_title || "Tema central").trim();
+  copyEl.appendChild(title);
+
+  appendAiSheetSection(copyEl, "Introdução", payload.theme_intro, true);
+  appendAiSheetSection(copyEl, "Explicação", payload.explanation, true);
+  appendAiSheetSection(copyEl, "Contexto histórico", payload.historical);
+  appendAiSheetSection(copyEl, "Contexto cultural", payload.cultural);
+  appendAiSheetSection(copyEl, "Pessoas", payload.people);
+  appendAiSheetSection(copyEl, "Nota", payload.disclaimer);
+}
+
+function closeAiSheet() {
+  aiSheetState.requestId += 1;
+  aiSheetState.open = false;
+  aiSheetState.dragging = false;
+  aiSheet.classList.remove("show", "is-dragging");
+  aiSheetBackdrop.classList.remove("show");
+  document.body.classList.remove("ai-sheet-open");
+  aiSheet.setAttribute("aria-hidden", "true");
+  applyAiSheetOffset(getAiSheetClosedOffset(), true);
+  clearActiveAiButton();
+}
+
+function openAiSheetShell(btn, ref, original, key) {
+  if (aiSheetState.activeButton && aiSheetState.activeButton !== btn) {
+    setAiButtonState(aiSheetState.activeButton, false, false);
+  }
+  aiSheetState.activeButton = btn;
+  aiSheetState.activeKey = key;
+  aiSheetState.open = true;
+  aiSheetState.dragging = false;
+  aiSheet.classList.add("show");
+  aiSheetBackdrop.classList.add("show");
+  document.body.classList.add("ai-sheet-open");
+  aiSheet.setAttribute("aria-hidden", "false");
+  aiSheet.querySelector(".ai-sheet-ref").textContent = ref;
+  aiSheet.querySelector(".ai-sheet-original").textContent = original;
+  fillAiSheetCopy("Preparando uma explicação mais clara…", false);
+  aiSheet.querySelector(".ai-sheet-copy").classList.add("is-loading");
+  setAiButtonState(btn, true, true);
+  requestAnimationFrame(() => {
+    aiSheetState.collapsedOffset = getAiSheetCollapsedOffset();
+    applyAiSheetOffset(aiSheetState.collapsedOffset, prefersReducedMotion());
+  });
+}
+
+function snapAiSheet(offset) {
+  const collapsedOffset = getAiSheetCollapsedOffset();
+  aiSheetState.collapsedOffset = collapsedOffset;
+  if (offset > collapsedOffset + 96) {
+    closeAiSheet();
+    return;
+  }
+  const nextOffset =
+    Math.abs(offset) < Math.abs(offset - collapsedOffset) ? 0 : collapsedOffset;
+  applyAiSheetOffset(nextOffset, prefersReducedMotion());
+}
+
+function beginAiSheetDrag(e) {
+  if (!aiSheetState.open) return;
+  aiSheetState.dragging = true;
+  aiSheetState.startY = e.clientY;
+  aiSheetState.startOffset = aiSheetState.currentOffset;
+  aiSheet.classList.add("is-dragging");
+  aiSheet.setPointerCapture(e.pointerId);
+}
+
+function moveAiSheetDrag(e) {
+  if (!aiSheetState.dragging) return;
+  const nextOffset = Math.max(
+    0,
+    Math.min(
+      getAiSheetClosedOffset(),
+      aiSheetState.startOffset + (e.clientY - aiSheetState.startY),
+    ),
+  );
+  applyAiSheetOffset(nextOffset, true);
+}
+
+function endAiSheetDrag(e) {
+  if (!aiSheetState.dragging) return;
+  aiSheetState.dragging = false;
+  aiSheet.classList.remove("is-dragging");
+  if (aiSheet.hasPointerCapture(e.pointerId)) {
+    aiSheet.releasePointerCapture(e.pointerId);
+  }
+  snapAiSheet(aiSheetState.currentOffset);
+}
+
+function makeAiRewordable(sectionEl, chapterData, verse) {
+  const btn = sectionEl.querySelector(".ai-btn");
+  const key = makeAiCacheKey(chapterData, verse);
+  const ref = `${chapterData.reference.human} · ${verse.number}`;
+  const originalText = String(verse.text || "");
+
+  setAiButtonState(btn, false, false);
 
   btn.addEventListener("click", async () => {
-    if (pending) return;
-    pending = true;
+    if (aiSheetState.open && aiSheetState.activeKey === key) {
+      closeAiSheet();
+      return;
+    }
+
+    const requestId = aiSheetState.requestId + 1;
+    aiSheetState.requestId = requestId;
+    openAiSheetShell(btn, ref, originalText, key);
+
     try {
-      if (showingSimplified) {
-        setAiButtonState(btn, "original", true);
-        textEl.textContent = originalText;
-        showingSimplified = false;
-        setAiButtonState(btn, "original", false);
+      const simplifiedText = await fetchSimplifiedVerse(chapterData, verse);
+      if (
+        aiSheetState.requestId !== requestId ||
+        aiSheetState.activeKey !== key
+      ) {
         return;
       }
-
-      setAiButtonState(btn, "original", true);
-      simplifiedText =
-        simplifiedText || (await fetchSimplifiedVerse(chapterData, verse));
-      await typeText(textEl, simplifiedText);
-      showingSimplified = true;
-      setAiButtonState(btn, "simplified", false);
+      fillAiSheetCopy(simplifiedText, false);
+      setAiButtonState(btn, true, false);
     } catch (e) {
-      setAiButtonState(
-        btn,
-        showingSimplified ? "simplified" : "original",
-        false,
-      );
-      showToast(
+      if (
+        aiSheetState.requestId !== requestId ||
+        aiSheetState.activeKey !== key
+      ) {
+        return;
+      }
+      fillAiSheetCopy(
         `Não foi possível simplificar agora: ${
           e && e.message ? e.message : "erro inesperado"
         }`,
+        true,
       );
-    } finally {
-      pending = false;
+      setAiButtonState(btn, true, false);
     }
   });
 }
+
+aiSheetBackdrop.addEventListener("click", closeAiSheet);
+aiSheet
+  .querySelector(".ai-sheet-close")
+  .addEventListener("click", closeAiSheet);
+aiSheet
+  .querySelector(".ai-sheet-dragger")
+  .addEventListener("pointerdown", beginAiSheetDrag);
+aiSheet.addEventListener("pointermove", moveAiSheetDrag);
+aiSheet.addEventListener("pointerup", endAiSheetDrag);
+aiSheet.addEventListener("pointercancel", endAiSheetDrag);
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && aiSheetState.open) closeAiSheet();
+});
+window.addEventListener("resize", () => {
+  if (!aiSheetState.open || aiSheetState.dragging) return;
+  const collapsedOffset = getAiSheetCollapsedOffset();
+  aiSheetState.collapsedOffset = collapsedOffset;
+  const nextOffset =
+    aiSheetState.currentOffset <= collapsedOffset / 2 ? 0 : collapsedOffset;
+  applyAiSheetOffset(nextOffset, true);
+});
 
 /* =========================================================================
    DOUBLE-TAP-TO-SAVE — sincronizado com a API de highlights YouVersion.
@@ -1369,7 +1591,7 @@ function buildVerseSection(chapterData, verse, isFirstEver, yvContentId) {
       <div class="verse-inner">
         <p class="verse-num">${chapterData.reference.human} · ${verse.number}</p>
         <p class="verse-text">${verse.text}</p>
-        <button class="ai-btn" type="button" aria-label="Reescrever em português simples" title="Reescrever em português simples">${AI_QUESTION_ICON}</button>
+        <button class="ai-btn" type="button" aria-label="Abrir explicação em português simples" title="Abrir explicação em português simples">${AI_QUESTION_ICON}</button>
         ${isFirstEver ? '<p class="swipe-hint"><span class="harrow">••</span> Toque duas vezes para salvar</p>' : ""}
       </div>
       <span class="save-badge ${isSaved ? "saved" : ""}" aria-hidden="true"></span>
@@ -1415,7 +1637,7 @@ function buildQuizSection(quiz, onContinue) {
   sec.setAttribute("data-ref", "Pergunta");
   sec.innerHTML = `
       <p class="eyebrow">Compreensão</p>
-      <p class="quiz-q">${quiz.question}</p>
+      <p class="quiz-q">${quiz?.question}</p>
       <div class="options"></div>
       <p class="feedback"></p>
       <button class="continue-btn" type="button">Continuar <span>↓</span></button>
